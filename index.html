@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบจองคิวอาบน้ำสัตว์เลี้ยง - QueSanrueGrooming</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <!-- Mobile Header -->
+  <div class="mobile-header">
+    <button class="hamburger-btn" onclick="app.toggleSidebar()" aria-label="Toggle menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <div class="mobile-logo">🐾 QueSanrue</div>
+  </div>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">🐾</div>
+        <div class="sidebar-logo-text">
+          <h1>QueSanrue</h1>
+          <p>ระบบจองคิวอาบน้ำ</p>
+        </div>
+      </div>
+
+      <nav>
+        <ul class="nav-menu">
+          <li class="nav-item">
+            <a href="#" class="nav-link active" data-page="dashboard">
+              <span class="nav-icon">📊</span>
+              <span>แดชบอร์ด</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" data-page="queue">
+              <span class="nav-icon">📋</span>
+              <span>คิววันนี้</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" data-page="customers">
+              <span class="nav-icon">👥</span>
+              <span>ลูกค้า</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" data-page="pets">
+              <span class="nav-icon">🐕</span>
+              <span>สัตว์เลี้ยง</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" data-page="groomers">
+              <span class="nav-icon">✂️</span>
+              <span>ช่างตัดขน</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" data-page="services">
+              <span class="nav-icon">📝</span>
+              <span>บันทึกบริการ</span>
+            </a>
+          </li>
+        </ul>
+
+        <!-- User Info and Logout -->
+        <div class="sidebar-footer">
+          <div class="user-info">
+            <span class="user-icon">👤</span>
+            <span class="user-name" id="current-user">User</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="app.logout()" style="width: 100%;">
+            <span>🚪</span> ออกจากระบบ
+          </button>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Dashboard Page -->
+      <div id="page-dashboard" class="page active">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>แดชบอร์ด</h2>
+            <div class="breadcrumb">หน้าหลัก / แดชบอร์ด</div>
+          </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <div class="stat-value" id="stat-queue-today">0</div>
+            <div class="stat-label">คิวทั้งหมด</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-value" id="stat-queue-waiting">0</div>
+            <div class="stat-label">รอคิว</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value" id="stat-queue-completed">0</div>
+            <div class="stat-label">เสร็จสิ้น</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-value" id="stat-total-customers">0</div>
+            <div class="stat-label">ลูกค้าทั้งหมด</div>
+          </div>
+        </div>
+
+        <!-- Calendar View -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📅 ปฏิทินคิว</h3>
+            <div class="calendar-nav">
+              <button class="btn btn-sm btn-secondary" onclick="app.previousMonth()">←</button>
+              <span id="calendar-month-year" class="calendar-month-label"></span>
+              <button class="btn btn-sm btn-secondary" onclick="app.nextMonth()">→</button>
+              <button class="btn btn-sm btn-info" onclick="app.goToToday()">วันนี้</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="calendar-container" class="calendar"></div>
+          </div>
+        </div>
+
+        <!-- Recent Queue -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">คิววันนี้</h3>
+          </div>
+          <div class="card-body">
+            <div id="dashboard-queue-list" class="queue-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Queue Page -->
+      <div id="page-queue" class="page hidden">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>คิววันนี้</h2>
+            <button class="btn btn-primary" onclick="app.showAddQueueModal()">
+              <span>➕</span> เพิ่มคิวใหม่
+            </button>
+          </div>
+        </div>
+
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="queue-search" placeholder="ค้นหาคิว...">
+        </div>
+
+        <div id="queue-list" class="queue-grid"></div>
+      </div>
+
+      <!-- Customers Page -->
+      <div id="page-customers" class="page hidden">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>ลูกค้า</h2>
+            <button class="btn btn-primary" onclick="app.showAddCustomerModal()">
+              <span>➕</span> เพิ่มลูกค้าใหม่
+            </button>
+          </div>
+        </div>
+
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="customer-search" placeholder="ค้นหาลูกค้า...">
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="table-container">
+              <table class="table" id="customers-table">
+                <thead>
+                  <tr>
+                    <th>ชื่อ-นามสกุล</th>
+                    <th>เบอร์โทร</th>
+                    <th>อีเมล</th>
+                    <th>สัตว์เลี้ยง</th>
+                    <th>การจัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="customers-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pets Page -->
+      <div id="page-pets" class="page hidden">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>สัตว์เลี้ยง</h2>
+            <button class="btn btn-primary" onclick="app.showAddPetModal()">
+              <span>➕</span> เพิ่มสัตว์เลี้ยงใหม่
+            </button>
+          </div>
+        </div>
+
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="pet-search" placeholder="ค้นหาสัตว์เลี้ยง...">
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="table-container">
+              <table class="table" id="pets-table">
+                <thead>
+                  <tr>
+                    <th>ชื่อสัตว์เลี้ยง</th>
+                    <th>ประเภท</th>
+                    <th>สายพันธุ์</th>
+                    <th>เจ้าของ</th>
+                    <th>น้ำหนัก</th>
+                    <th>การจัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="pets-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Groomers Page -->
+      <div id="page-groomers" class="page hidden">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>ช่างตัดขน</h2>
+            <button class="btn btn-primary" onclick="app.showAddGroomerModal()">
+              <span>➕</span> เพิ่มช่างใหม่
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="table-container">
+              <table class="table" id="groomers-table">
+                <thead>
+                  <tr>
+                    <th>ชื่อ-นามสกุล</th>
+                    <th>เบอร์โทร</th>
+                    <th>ความเชี่ยวชาญ</th>
+                    <th>ระดับ</th>
+                    <th>สถานะ</th>
+                    <th>การจัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="groomers-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Services Page -->
+      <div id="page-services" class="page hidden">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>บันทึกบริการ</h2>
+          </div>
+        </div>
+
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="service-search" placeholder="ค้นหาบันทึกบริการ...">
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="table-container">
+              <table class="table" id="services-table">
+                <thead>
+                  <tr>
+                    <th>วันที่</th>
+                    <th>ลูกค้า</th>
+                    <th>สัตว์เลี้ยง</th>
+                    <th>ช่าง</th>
+                    <th>บริการ</th>
+                    <th>ระยะเวลา</th>
+                    <th>ราคา</th>
+                  </tr>
+                </thead>
+                <tbody id="services-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Customer Modal -->
+  <div id="modal-customer" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-customer-title">เพิ่มลูกค้าใหม่</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-customer')">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-customer">
+          <input type="hidden" id="customer-id">
+          <div class="form-group">
+            <label class="form-label required">ชื่อ-นามสกุล</label>
+            <input type="text" class="form-input" id="customer-name" required>
+            <div class="form-error">กรุณากรอกชื่อ-นามสกุล</div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label required">เบอร์โทร</label>
+              <input type="tel" class="form-input" id="customer-phone" required>
+              <div class="form-error">กรุณากรอกเบอร์โทร</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">อีเมล</label>
+              <input type="email" class="form-input" id="customer-email">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ที่อยู่</label>
+            <textarea class="form-textarea" id="customer-address"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('modal-customer')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="app.saveCustomer()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Pet Modal -->
+  <div id="modal-pet" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-pet-title">เพิ่มสัตว์เลี้ยงใหม่</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-pet')">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-pet">
+          <input type="hidden" id="pet-id">
+          <div class="form-group">
+            <label class="form-label required">เจ้าของ</label>
+            <select class="form-select" id="pet-customer" required>
+              <option value="">-- เลือกเจ้าของ --</option>
+            </select>
+            <div class="form-error">กรุณาเลือกเจ้าของ</div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label required">ชื่อสัตว์เลี้ยง</label>
+              <input type="text" class="form-input" id="pet-name" required>
+              <div class="form-error">กรุณากรอกชื่อสัตว์เลี้ยง</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">ประเภท</label>
+              <select class="form-select" id="pet-type" required>
+                <option value="">-- เลือกประเภท --</option>
+                <option value="dog">สุนัข</option>
+                <option value="cat">แมว</option>
+              </select>
+              <div class="form-error">กรุณาเลือกประเภท</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">สายพันธุ์</label>
+              <input type="text" class="form-input" id="pet-breed">
+            </div>
+            <div class="form-group">
+              <label class="form-label">น้ำหนัก (กก.)</label>
+              <input type="number" class="form-input" id="pet-weight" step="0.1">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">สี</label>
+              <input type="text" class="form-input" id="pet-color">
+            </div>
+            <div class="form-group">
+              <label class="form-label">วันเกิด</label>
+              <input type="date" class="form-input" id="pet-birthdate">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">หมายเหตุ (แพ้ยา, พฤติกรรม, การดูแลพิเศษ)</label>
+            <textarea class="form-textarea" id="pet-notes"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('modal-pet')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="app.savePet()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Groomer Modal -->
+  <div id="modal-groomer" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-groomer-title">เพิ่มช่างใหม่</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-groomer')">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-groomer">
+          <input type="hidden" id="groomer-id">
+          <div class="form-group">
+            <label class="form-label required">ชื่อ-นามสกุล</label>
+            <input type="text" class="form-input" id="groomer-name" required>
+            <div class="form-error">กรุณากรอกชื่อ-นามสกุล</div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label required">เบอร์โทร</label>
+              <input type="tel" class="form-input" id="groomer-phone" required>
+              <div class="form-error">กรุณากรอกเบอร์โทร</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">อีเมล</label>
+              <input type="email" class="form-input" id="groomer-email">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">ความเชี่ยวชาญ</label>
+              <select class="form-select" id="groomer-specialty" multiple size="3">
+                <option value="dog">สุนัข</option>
+                <option value="cat">แมว</option>
+                <option value="both">ทั้งสองอย่าง</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ระดับประสบการณ์</label>
+              <select class="form-select" id="groomer-experience">
+                <option value="junior">มือใหม่</option>
+                <option value="senior">มีประสบการณ์</option>
+                <option value="expert">ผู้เชี่ยวชาญ</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">วันที่เริ่มงาน</label>
+              <input type="date" class="form-input" id="groomer-hiredate">
+            </div>
+            <div class="form-group">
+              <label class="form-label">สถานะ</label>
+              <select class="form-select" id="groomer-active">
+                <option value="true">ทำงานอยู่</option>
+                <option value="false">ไม่ทำงาน</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">หมายเหตุ</label>
+            <textarea class="form-textarea" id="groomer-notes"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('modal-groomer')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="app.saveGroomer()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Queue Modal -->
+  <div id="modal-queue" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">เพิ่มคิวใหม่</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-queue')">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-queue">
+          <div class="form-group">
+            <label class="form-label required">ลูกค้า</label>
+            <div class="quick-add-container">
+              <select class="form-select" id="queue-customer" required onchange="app.loadPetsByCustomer()">
+                <option value="">-- เลือกลูกค้า --</option>
+              </select>
+              <button type="button" class="btn btn-sm btn-success" onclick="app.toggleQuickAddCustomer()">
+                ➕ เพิ่มลูกค้าใหม่
+              </button>
+            </div>
+            <div class="form-error">กรุณาเลือกลูกค้า</div>
+
+            <!-- Quick Add Customer Form -->
+            <div id="quick-customer-form" class="quick-add-form hidden">
+              <div class="quick-form-header">เพิ่มลูกค้าด่วน</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <input type="text" class="form-input" id="quick-customer-name" placeholder="ชื่อ-นามสกุล *">
+                </div>
+                <div class="form-group">
+                  <input type="tel" class="form-input" id="quick-customer-phone" placeholder="เบอร์โทร *">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-sm btn-secondary"
+                  onclick="app.cancelQuickAddCustomer()">ยกเลิก</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="app.saveQuickCustomer()">บันทึก</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label required">สัตว์เลี้ยง</label>
+            <div class="quick-add-container">
+              <select class="form-select" id="queue-pet" required>
+                <option value="">-- เลือกสัตว์เลี้ยง --</option>
+              </select>
+              <button type="button" class="btn btn-sm btn-success" onclick="app.toggleQuickAddPet()" id="quick-pet-btn">
+                ➕ เพิ่มสัตว์เลี้ยงใหม่
+              </button>
+            </div>
+            <div class="form-error">กรุณาเลือกสัตว์เลี้ยง</div>
+
+            <!-- Quick Add Pet Form -->
+            <div id="quick-pet-form" class="quick-add-form hidden">
+              <div class="quick-form-header">เพิ่มสัตว์เลี้ยงด่วน</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <input type="text" class="form-input" id="quick-pet-name" placeholder="ชื่อสัตว์เลี้ยง *">
+                </div>
+                <div class="form-group">
+                  <select class="form-select" id="quick-pet-type">
+                    <option value="">-- ประเภท --</option>
+                    <option value="dog">สุนัข</option>
+                    <option value="cat">แมว</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="app.cancelQuickAddPet()">ยกเลิก</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="app.saveQuickPet()">บันทึก</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- NEW: Date & Time Selection -->
+          <div class="form-group">
+            <label class="form-label required">วันที่นัดหมาย</label>
+            <input type="date" class="form-input" id="queue-date" required />
+            <small class="text-muted">เลือกวันที่ต้องการเข้ารับบริการ</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">เวลานัดหมาย</label>
+            <input type="hidden" id="queue-time-slot" />
+            <div id="time-slot-buttons" class="time-slot-grid">
+              <div class="time-slot-placeholder">เลือกบริการก่อนเพื่อดูเวลาว่าง</div>
+            </div>
+            <small class="text-muted" id="time-slot-info">กรุณาเลือกบริการก่อนเพื่อดูเวลาว่าง</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">ช่างที่รับผิดชอบ</label>
+            <select class="form-select" id="queue-groomer">
+              <option value="">-- เลือกช่าง (ถ้ามี) --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label required">บริการที่ต้องการ</label>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-top: 0.5rem;">
+              <label style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="service-type" value="อาบน้ำ"> อาบน้ำ
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="service-type" value="ตัดขน"> ตัดขน
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="service-type" value="ตัดเล็บ"> ตัดเล็บ
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="service-type" value="ทำสปา"> ทำสปา
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" name="service-type" value="ดูแลพิเศษ"> ดูแลพิเศษ
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 0.5rem;">
+              <input type="checkbox" id="queue-priority">
+              <span class="form-label" style="margin: 0;">คิวด่วน (Priority)</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">หมายเหตุ</label>
+            <textarea class="form-textarea" id="queue-notes"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('modal-queue')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="app.saveQueue()">เพิ่มคิว</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deposit Confirmation Modal -->
+  <div id="modal-deposit" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-deposit-title">ยืนยันการมัดจำ</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-deposit')">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-deposit">
+          <div class="form-group">
+            <label class="form-label required">ยอดมัดจำ (บาท)</label>
+            <input type="number" class="form-input" id="deposit-amount" step="0.01" min="0" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">วิธีการชำระ</label>
+            <select class="form-select" id="deposit-method">
+              <option value="cash">เงินสด</option>
+              <option value="transfer">โอนเงิน</option>
+              <option value="credit">บัตรเครดิต</option>
+              <option value="qr">QR Code</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('modal-deposit')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="app.saveDeposit()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Check-in Modal -->
+  <div id="modal-checkin" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-checkin-title">เช็คอิน</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-checkin')">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-checkin">
+          <div class="form-group">
+            <label class="form-label required">น้ำหนักปัจจุบัน (กก.)</label>
+            <input type="number" class="form-input" id="checkin-weight" step="0.1" min="0" required />
+            <small class="text-muted">น้ำหนักล่าสุด: <span id="last-weight-display">-</span></small>
+          </div>
+          <div class="form-group">
+            <label class="form-label">หมายเหตุพิเศษ</label>
+            <textarea class="form-textarea" id="checkin-notes" rows="4"
+              placeholder="เช่น แมวดุ, มีเห็บหมัด, มีแผล, กลัวน้ำ, อื่นๆ"></textarea>
+
+            <!-- Quick note buttons -->
+            <div class="quick-notes" style="margin-top: 0.5rem;">
+              <button type="button" class="btn-quick-note" onclick="app.addQuickNote('แมวดุ')">แมวดุ</button>
+              <button type="button" class="btn-quick-note" onclick="app.addQuickNote('สุนัขดุ')">สุนัขดุ</button>
+              <button type="button" class="btn-quick-note" onclick="app.addQuickNote('มีเห็บหมัด')">มีเห็บหมัด</button>
+              <button type="button" class="btn-quick-note" onclick="app.addQuickNote('กลัวน้ำ')">กลัวน้ำ</button>
+              <button type="button" class="btn-quick-note" onclick="app.addQuickNote('มีแผล')">มีแผล</button>
+              <button type="button" class="btn-quick-note" onclick="app.addQuickNote('ขนพัน')">ขนพัน</button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('modal-checkin')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="app.saveCheckIn()">บันทึกเช็คอิน</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Completion Modal -->
+  <div id="modal-completion" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-completion-title">ปิดงาน</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-completion')">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-completion">
+          <div class="form-group">
+            <label class="form-label required">ช่างผู้ให้บริการ</label>
+            <select class="form-select" id="completion-groomer" required>
+              <option value="">-- เลือกช่าง --</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">รูปภาพตรวจสอบความเรียบร้อย</label>
+            <small class="text-muted" style="display: block; margin-bottom: 0.5rem;">
+              อัพโหลด 2-4 รูป แสดงทุกมุม แห้งสนิท เรียบร้อย
+            </small>
+            <input type="file" class="form-input" id="completion-images" accept="image/*" multiple
+              onchange="app.previewImages(this)" />
+
+            <!-- Image preview grid -->
+            <div id="image-preview" class="image-preview-grid"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">หมายเหตุเพิ่มเติม</label>
+            <textarea class="form-textarea" id="completion-notes" rows="3" placeholder="บันทึกเพิ่มเติม..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('modal-completion')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="app.saveCompletion()">ปิดงาน</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
