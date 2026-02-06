@@ -1101,7 +1101,15 @@ class PetGroomingApp {
   // Display search results
   displaySearchResults(results, containerEl) {
     if (results.length === 0) {
-      containerEl.innerHTML = '<div class="search-no-results">ไม่พบลูกค้า</div>';
+      const searchQuery = document.getElementById('customer-search-input').value.trim();
+      containerEl.innerHTML = `
+        <div class="search-no-results">
+          <div style="margin-bottom: 0.5rem;">ไม่พบลูกค้า</div>
+          <button class="btn btn-sm btn-success" onclick="app.quickAddFromSearch('${searchQuery}')" style="width: 100%;">
+            ➕ เพิ่มลูกค้าใหม่
+          </button>
+        </div>
+      `;
       containerEl.classList.add('show');
       return;
     }
