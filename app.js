@@ -1159,6 +1159,23 @@ class PetGroomingApp {
     resultsDiv.classList.remove('show');
   }
 
+  // Filter customer dropdown based on search results
+  filterCustomerDropdown(filteredCustomers) {
+    const customerSelect = document.getElementById('queue-customer');
+    if (!customerSelect) return;
+
+    // Clear current options except the placeholder
+    customerSelect.innerHTML = '<option value="">-- เลือกลูกค้า --</option>';
+
+    // Add filtered customers
+    filteredCustomers.forEach(customer => {
+      const option = document.createElement('option');
+      option.value = customer.id;
+      option.textContent = `${customer.name} - ${customer.phone}`;
+      customerSelect.appendChild(option);
+    });
+  }
+
   openModal(modalId) {
     document.getElementById(modalId).classList.add('active');
   }
