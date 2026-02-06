@@ -1072,11 +1072,16 @@ class PetGroomingApp {
 
       if (query.length < 1) {
         resultsDiv.classList.remove('show');
+        // Reset dropdown to show all customers
+        this.populateCustomerDropdown('queue-customer');
         return;
       }
 
       const results = this.searchCustomers(query);
       this.displaySearchResults(results, resultsDiv);
+
+      // Also filter the select dropdown
+      this.filterCustomerDropdown(results);
     });
 
     // Close dropdown when clicking outside
