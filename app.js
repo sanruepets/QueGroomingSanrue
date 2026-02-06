@@ -1048,7 +1048,107 @@ class PetGroomingApp {
     // NEW: Initialize smart scheduling
     this.initializeQueueModal();
 
+    // Setup customer search
+    this.setupCustomerSearch();
+
     this.openModal('modal-queue');
+  }
+
+  // Setup customer search functionality
+  setupCustomerSearch() {
+    const searchInput = document.getElementById('customer-search-input');
+    const resultsDiv = document.getElementById('customer-search-results');
+
+    if (!searchInput || !resultsDiv) return;
+
+    // Clear previous value
+    searchInput.value = '';
+    resultsDiv.innerHTML = '';
+    resultsDiv.classList.remove('show');
+
+    // Add input event listener
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.trim();
+
+      if (query.length < 1) {
+        resultsDiv.classList.remove('show');
+        return;
+      }
+
+      const results = this.searchCustomers(query);
+      this.displaySearchResults(results, resultsDiv);
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+        resultsDiv.classList.remove('show');
+      }
+    });
+  }
+
+  // Search customers by name or phone
+  searchCustomers(query) {
+    const customers = this.store.getCustomers();
+    query = query.toLowerCase();
+
+    return customers.filter(c =>
+      c.name.toLowerCase().includes(query) ||
+      c.phone.includes(query)
+    );
+  }
+
+  // Display search results
+  displaySearchResults(results, containerEl) {
+    if (results.length === 0) {
+      containerEl.innerHTML = '<div class="search-no-results">ไม่พบลูกค้า</div>';
+      containerEl.classList.add('show');
+      return;
+    }
+
+    let html = '';
+    results.forEach(customer => {
+      html += `
+        <div class="search-result-item" data-customer-id="${customer.id}">
+          <div class="search-result-name">${customer.name}</div>
+          <div class="search-result-phone">${customer.phone}</div>
+        </div>
+      `;
+    });
+
+    containerEl.innerHTML = html;
+    containerEl.classList.add('show');
+
+    // Add click listeners to results
+    const items = containerEl.querySelectorAll('.search-result-item');
+    items.forEach(item => {
+      item.addEventListener('click', () => {
+        const customerId = item.dataset.customerId;
+        this.selectCustomerFromSearch(customerId);
+      });
+    });
+  }
+
+  // Select customer from search results
+  selectCustomerFromSearch(customerId) {
+    const searchInput = document.getElementById('customer-search-input');
+    const resultsDiv = document.getElementById('customer-search-results');
+    const customerSelect = document.getElementById('queue-customer');
+
+    // Set customer dropdown value
+    customerSelect.value = customerId;
+
+    // Trigger change event to load pets
+    customerSelect.dispatchEvent(new Event('change'));
+
+    // Get customer name for display
+    const customer = this.store.getCustomers().find(c => c.id === customerId);
+    if (customer) {
+      searchInput.value = `${customer.name} - ${customer.phone}`;
+    }
+
+    // Hide results
+    resultsDiv.classList.remove('show');
   }
 
   openModal(modalId) {

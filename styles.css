@@ -1533,3 +1533,63 @@ p {
   color: var(--text-gray);
   font-size: 0.875rem;
 }
+
+/* Customer Search Results Dropdown */
+.search-results-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid var(--border-gray);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  margin-top: var(--spacing-xs);
+  display: none;
+}
+
+.search-results-dropdown.show {
+  display: block;
+}
+
+.search-result-item {
+  padding: var(--spacing-md);
+  cursor: pointer;
+  border-bottom: 1px solid var(--light-gray);
+  transition: var(--transition-fast);
+}
+
+.search-result-item:hover {
+  background: var(--light-gray);
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-name {
+  font-weight: 600;
+  color: var(--dark-gray);
+  font-size: 1rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+.search-result-phone {
+  font-size: 0.875rem;
+  color: var(--text-gray);
+}
+
+.search-result-highlight {
+  background: rgba(255, 140, 66, 0.2);
+  font-weight: 600;
+}
+
+.search-no-results {
+  padding: var(--spacing-lg);
+  text-align: center;
+  color: var(--text-gray);
+  font-size: 0.875rem;
+}

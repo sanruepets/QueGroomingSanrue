@@ -491,6 +491,13 @@
       <div class="modal-body">
         <form id="form-queue">
           <div class="form-group">
+            <label class="form-label">🔍 ค้นหาลูกค้า</label>
+            <input type="text" class="form-input" id="customer-search-input" placeholder="พิมพ์ชื่อหรือเบอร์โทร..."
+              autocomplete="off">
+            <div id="customer-search-results" class="search-results-dropdown"></div>
+          </div>
+
+          <div class="form-group">
             <label class="form-label required">ลูกค้า</label>
             <div class="quick-add-container">
               <select class="form-select" id="queue-customer" required onchange="app.loadPetsByCustomer()">
