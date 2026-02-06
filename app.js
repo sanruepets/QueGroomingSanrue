@@ -296,10 +296,13 @@ class DataStore {
     this.saveData();
   }
 
-  // Get today's queue
+  // Get today's queue (using local date, not UTC)
   getTodayQueue() {
-    const today = new Date().toISOString().split('T')[0];
-    return this.data.queue.filter(q => q.date === today);
+    const today = new Date();
+    const localDate = new Date(today.getTime() - (today.getTimezoneOffset() * 60000))
+      .toISOString()
+      .split('T')[0];
+    return this.data.queue.filter(q => q.date === localDate);
   }
 
   // NEW: Get queue by specific date
