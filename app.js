@@ -1099,7 +1099,8 @@ class PetGroomingApp {
 
     return customers.filter(c =>
       c.name.toLowerCase().includes(query) ||
-      c.phone.includes(query)
+      c.phone.includes(query) ||
+      (c.socialName && c.socialName.toLowerCase().includes(query))
     );
   }
 
@@ -1197,6 +1198,7 @@ class PetGroomingApp {
     const id = document.getElementById('customer-id').value;
     const customerData = {
       name: document.getElementById('customer-name').value,
+      socialName: document.getElementById('customer-social-name').value,
       phone: document.getElementById('customer-phone').value,
       email: document.getElementById('customer-email').value,
       address: document.getElementById('customer-address').value
@@ -1663,6 +1665,7 @@ class PetGroomingApp {
 
   saveQuickCustomer() {
     const name = document.getElementById('quick-customer-name').value;
+    const socialName = document.getElementById('quick-customer-social-name').value;
     const phone = document.getElementById('quick-customer-phone').value;
 
     if (!name || !phone) {
@@ -1672,6 +1675,7 @@ class PetGroomingApp {
 
     const customer = this.store.addCustomer({
       name,
+      socialName,
       phone,
       email: '',
       address: ''
