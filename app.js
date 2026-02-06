@@ -525,7 +525,7 @@ class PetGroomingApp {
   checkAuth() {
     const isAuthenticated = localStorage.getItem('isAuthenticated');
     if (!isAuthenticated || isAuthenticated !== 'true') {
-      window.location.href = 'login.html';
+      window.location.href = 'index.html';
       return false;
     }
     const username = localStorage.getItem('username');
@@ -1923,7 +1923,7 @@ class PetGroomingApp {
   logout() {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('username');
-    window.location.href = 'login.html';
+    window.location.href = 'index.html';
   }
 
   // Set dashboard to today
