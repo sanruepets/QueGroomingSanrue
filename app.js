@@ -1598,6 +1598,32 @@ class PetGroomingApp {
   // QUICK ADD METHODS
   // ===================================
 
+  // Quick add customer from search
+  quickAddFromSearch(searchQuery) {
+    // Hide search results
+    const resultsDiv = document.getElementById('customer-search-results');
+    if (resultsDiv) {
+      resultsDiv.classList.remove('show');
+    }
+
+    // Show quick add form
+    this.toggleQuickAddCustomer();
+
+    // Auto-fill name if search query looks like a name
+    const nameInput = document.getElementById('quick-customer-name');
+    if (nameInput && searchQuery && searchQuery.length > 0) {
+      //If search query is numeric, assume it's phone, otherwise name
+      if (!/^\d+$/.test(searchQuery)) {
+        nameInput.value = searchQuery;
+      } else {
+        const phoneInput = document.getElementById('quick-customer-phone');
+        if (phoneInput) {
+          phoneInput.value = searchQuery;
+        }
+      }
+    }
+  }
+
   toggleQuickAddCustomer() {
     const form = document.getElementById('quick-customer-form');
     if (form.classList.contains('hidden')) {
