@@ -365,11 +365,47 @@
         <form id="form-pet">
           <input type="hidden" id="pet-id">
           <div class="form-group">
+            <label class="form-label">🔍 ค้นหาเจ้าของ</label>
+            <input type="text" class="form-input" id="pet-modal-customer-search" placeholder="พิมพ์ชื่อหรือเบอร์โทร..."
+              autocomplete="off">
+            <div id="pet-modal-search-results" class="search-results-dropdown"></div>
+          </div>
+
+          <div class="form-group">
             <label class="form-label required">เจ้าของ</label>
-            <select class="form-select" id="pet-customer" required>
-              <option value="">-- เลือกเจ้าของ --</option>
-            </select>
+            <div class="quick-add-container">
+              <select class="form-select" id="pet-customer" required>
+                <option value="">-- เลือกเจ้าของ --</option>
+              </select>
+              <button type="button" class="btn btn-sm btn-success" onclick="app.togglePetQuickAddCustomer()">
+                ➕ เพิ่มเจ้าของใหม่
+              </button>
+            </div>
             <div class="form-error">กรุณาเลือกเจ้าของ</div>
+
+            <!-- Quick Add Customer Form for Pet Modal -->
+            <div id="pet-modal-quick-customer-form" class="quick-add-form hidden">
+              <div class="quick-form-header">เพิ่มเจ้าของด่วน</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <input type="text" class="form-input" id="pet-quick-name" placeholder="ชื่อ-นามสกุล *">
+                </div>
+                <div class="form-group">
+                  <input type="text" class="form-input" id="pet-quick-social" placeholder="ชื่อโซเชียล">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <input type="tel" class="form-input" id="pet-quick-phone" placeholder="เบอร์โทร *">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-sm btn-secondary"
+                  onclick="app.cancelPetQuickAddCustomer()">ยกเลิก</button>
+                <button type="button" class="btn btn-sm btn-primary"
+                  onclick="app.savePetQuickCustomer()">บันทึก</button>
+              </div>
+            </div>
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -746,6 +782,9 @@
     </div>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="firebase-config.js"></script>
   <script src="app.js"></script>
 </body>
 

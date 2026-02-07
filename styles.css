@@ -464,6 +464,7 @@ p {
 
 .form-group {
   margin-bottom: var(--spacing-lg);
+  position: relative;
 }
 
 .form-label {

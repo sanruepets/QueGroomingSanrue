@@ -1,17 +1,19 @@
 // Firebase Configuration
 // Replace with your actual Firebase project config keys
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyCa5hytLxjeGUZbUkCTSMIKTOL72J7J_hY",
+    authDomain: "quegroomingsanrue.firebaseapp.com",
+    projectId: "quegroomingsanrue",
+    storageBucket: "quegroomingsanrue.firebasestorage.app",
+    messagingSenderId: "939515937605",
+    appId: "1:939515937605:web:4398219f99964ad570342c",
+    measurementId: "G-3W82XJBRWF"
 };
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+window.db = db; // Make available globally for app.js
 
 // Enable offline persistence
 db.enablePersistence()

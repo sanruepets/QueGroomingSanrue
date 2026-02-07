@@ -71,6 +71,12 @@ class DataStore {
           if (window.app.currentPage === 'pets') window.app.renderPets();
           if (window.app.currentPage === 'groomers') window.app.renderGroomers();
         }
+      }, error => {
+        console.error(`Error listening to ${col}:`, error);
+        if (error.code === 'permission-denied' && !window.hasShownPermissionError) {
+          alert('⚠️ ไม่สามารถเข้าถึงข้อมูลได้ (Permission Denied)\nกรุณาตั้งค่า Firestore Rules ใน Firebase Console ให้เปิดใช้งาน (Allow read/write)');
+          window.hasShownPermissionError = true;
+        }
       });
     });
   }
@@ -588,8 +594,12 @@ class PetGroomingApp {
     this.checkAuth();
     this.setupNavigation();
     this.setupSearchFilters();
+    this.setupPetModalListeners();
     this.renderDashboard();
-    this.loadSampleData(); // Load sample data if empty
+    this.renderDashboard();
+    this.renderDashboard();
+    // Auto-load sample data if empty (with safety check inside)
+    this.loadSampleData();
   }
 
   // Check authentication
@@ -614,69 +624,86 @@ class PetGroomingApp {
   }
 
   // Load sample data for demo
-  loadSampleData() {
-    if (this.store.getCustomers().length === 0) {
-      // Add sample customers
-      const customer1 = this.store.addCustomer({
-        name: 'สมชาย ใจดี',
-        phone: '081-234-5678',
-        email: 'somchai@email.com',
-        address: '123 ถนนสุขุมวิท กรุงเทพฯ'
-      });
+  async loadSampleData() {
+    // Check if data is truly empty by querying Firestore directly
+    try {
+      const snapshot = await this.store.db.collection('customers').limit(1).get();
+      if (!snapshot.empty) {
+        console.log('Data exists, skipping sample data load');
+        return;
+      }
+    } catch (e) {
+      console.warn('Could not check for existing data, skipping sample load to be safe', e);
+      return;
+    }
 
-      const customer2 = this.store.addCustomer({
-        name: 'สมหญิง รักสัตว์',
-        phone: '089-876-5432',
-        email: 'somying@email.com',
-        address: '456 ถนนพระราม 9 กรุงเทพฯ'
-      });
+    console.log('Loading sample data...');
+    // For manual seeding, we can use this method.
 
+    // Add sample customers
+    const customer1 = await this.store.addCustomer({
+      name: 'สมชาย ใจดี',
+      phone: '081-234-5678',
+      email: 'somchai@email.com',
+      address: '123 ถนนสุขุมวิท กรุงเทพฯ'
+    });
+
+    const customer2 = await this.store.addCustomer({
+      name: 'สมหญิง รักสัตว์',
+      phone: '089-876-5432',
+      email: 'somying@email.com',
+      address: '456 ถนนพระราม 9 กรุงเทพฯ'
+    });
+
+    if (customer1) {
       // Add sample pets
-      this.store.addPet({
+      await this.store.addPet({
         customerId: customer1.id,
         name: 'มะลิ',
         type: 'dog',
         breed: 'ชิวาวา',
-        birthDate: '2020-05-15',
         weight: 3.5,
-        color: 'น้ำตาล',
-        notes: 'กลัวน้ำ ต้องใช้เวลาในการปรับอารมณ์'
-      });
-
-      this.store.addPet({
-        customerId: customer2.id,
-        name: 'จอมขวัญ',
-        type: 'cat',
-        breed: 'เปอร์เซีย',
-        birthDate: '2021-03-20',
-        weight: 4.2,
         color: 'ขาว',
-        notes: 'แพ้ยาบางชนิด ตรวจสุขภาพประจำ'
-      });
-
-      // Add sample groomers
-      this.store.addGroomer({
-        name: 'วิชัย ตัดขนดี',
-        phone: '091-111-2222',
-        email: 'vichai@grooming.com',
-        specialty: ['dog', 'cat'],
-        experienceLevel: 'expert',
-        isActive: true,
-        hireDate: '2020-01-15',
-        notes: 'ผู้เชี่ยวชาญด้านสุนัขพันธุ์ใหญ่'
-      });
-
-      this.store.addGroomer({
-        name: 'สุดา อาบน้ำเก่ง',
-        phone: '092-333-4444',
-        email: 'suda@grooming.com',
-        specialty: ['cat'],
-        experienceLevel: 'senior',
-        isActive: true,
-        hireDate: '2021-06-01',
-        notes: 'เชี่ยวชาญด้านแมว'
+        birthDate: '2020-05-15',
+        notes: 'กลัวเสียงดัง'
       });
     }
+
+    if (customer2) {
+      await this.store.addPet({
+        customerId: customer2.id,
+        name: 'มีตังค์',
+        type: 'cat',
+        breed: 'สก็อตติช',
+        weight: 5.2,
+        color: 'เทา',
+        birthDate: '2021-08-20',
+        notes: ''
+      });
+    }
+
+    // Add sample groomers
+    await this.store.addGroomer({
+      name: 'วิชัย ตัดขนดี',
+      phone: '091-111-2222',
+      email: 'vichai@grooming.com',
+      specialty: ['dog', 'cat'],
+      experienceLevel: 'expert',
+      isActive: true,
+      hireDate: '2020-01-15',
+      notes: 'ผู้เชี่ยวชาญด้านสุนัขพันธุ์ใหญ่'
+    });
+
+    await this.store.addGroomer({
+      name: 'สุดา อาบน้ำเก่ง',
+      phone: '092-333-4444',
+      email: 'suda@grooming.com',
+      specialty: ['cat'],
+      experienceLevel: 'senior',
+      isActive: true,
+      hireDate: '2021-06-01',
+      notes: 'เชี่ยวชาญด้านแมว'
+    });
   }
 
   // Navigation
@@ -1387,6 +1414,127 @@ class PetGroomingApp {
       await this.store.deletePet(id);
       this.renderPets();
     }
+  }
+
+  // ===================================
+  // PET MODAL HELPERS
+  // ===================================
+
+  setupPetModalListeners() {
+    const searchInput = document.getElementById('pet-modal-customer-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.handlePetCustomerSearch(e.target.value);
+      });
+
+      // Close search results when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#pet-modal-customer-search') && !e.target.closest('#pet-modal-search-results')) {
+          const resultsDiv = document.getElementById('pet-modal-search-results');
+          if (resultsDiv) resultsDiv.classList.remove('show');
+        }
+      });
+    }
+  }
+
+  handlePetCustomerSearch(searchTerm) {
+    const resultsDiv = document.getElementById('pet-modal-search-results');
+    if (!resultsDiv) return;
+
+    if (!searchTerm || searchTerm.length < 2) {
+      resultsDiv.classList.remove('show');
+      return;
+    }
+
+    const customers = this.store.getCustomers();
+    const filtered = customers.filter(c =>
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.phone.includes(searchTerm)
+    );
+
+    if (filtered.length === 0) {
+      resultsDiv.innerHTML = '<div class="search-result-item" onclick="app.togglePetQuickAddCustomer(document.getElementById(\'pet-modal-customer-search\').value)">+ เพิ่มเจ้าของใหม่</div>';
+      resultsDiv.classList.add('show');
+      return;
+    }
+
+    resultsDiv.innerHTML = filtered.map(c => `
+      <div class="search-result-item" onclick="app.selectCustomerForPet('${c.id}')">
+        <div class="name">${c.name} ${c.socialName ? `(${c.socialName})` : ''}</div>
+        <div class="phone">${c.phone}</div>
+      </div>
+    `).join('');
+
+    resultsDiv.classList.add('show');
+  }
+
+  selectCustomerForPet(customerId) {
+    const select = document.getElementById('pet-customer');
+    if (select) {
+      select.value = customerId;
+    }
+
+    // Clear search
+    document.getElementById('pet-modal-customer-search').value = '';
+    const resultsDiv = document.getElementById('pet-modal-search-results');
+    if (resultsDiv) resultsDiv.classList.remove('show');
+  }
+
+  togglePetQuickAddCustomer(initialName = '') {
+    const form = document.getElementById('pet-modal-quick-customer-form');
+    if (form) {
+      if (form.classList.contains('hidden')) {
+        form.classList.remove('hidden');
+        if (initialName && typeof initialName === 'string') {
+          // Basic check if it's phone or name like in queue modal
+          if (/^\d+$/.test(initialName)) {
+            document.getElementById('pet-quick-phone').value = initialName;
+          } else {
+            document.getElementById('pet-quick-name').value = initialName;
+          }
+        }
+      } else {
+        form.classList.add('hidden');
+      }
+    }
+    // Hide search results
+    const resultsDiv = document.getElementById('pet-modal-search-results');
+    if (resultsDiv) resultsDiv.classList.remove('show');
+  }
+
+  cancelPetQuickAddCustomer() {
+    document.getElementById('pet-modal-quick-customer-form').classList.add('hidden');
+    document.getElementById('pet-quick-name').value = '';
+    document.getElementById('pet-quick-social').value = '';
+    document.getElementById('pet-quick-phone').value = '';
+  }
+
+  async savePetQuickCustomer() {
+    const name = document.getElementById('pet-quick-name').value;
+    const socialName = document.getElementById('pet-quick-social').value;
+    const phone = document.getElementById('pet-quick-phone').value;
+
+    if (!name || !phone) {
+      alert('กรุณากรอกชื่อและเบอร์โทร');
+      return;
+    }
+
+    const customer = await this.store.addCustomer({
+      name,
+      socialName,
+      phone,
+      email: '',
+      address: ''
+    });
+
+    if (!customer) return;
+
+    // Refresh dropdowns logic
+    this.populateCustomerDropdown('pet-customer');
+
+    // Select new customer
+    this.selectCustomerForPet(customer.id);
+    this.cancelPetQuickAddCustomer();
   }
 
   // ===================================
