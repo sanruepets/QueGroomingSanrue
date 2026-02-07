@@ -4,89 +4,125 @@
 
 class DataStore {
   constructor() {
-    this.storageKey = 'petGroomingData';
-    this.data = this.loadData();
-  }
-
-  loadData() {
-    const stored = localStorage.getItem(this.storageKey);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-    return {
+    this.db = window.db; // From firebase-config.js
+    this.data = {
       customers: [],
       pets: [],
       groomers: [],
       queue: [],
       serviceRecords: [],
-      dailySchedules: [],  // NEW: Staff schedules per day
-      settings: {
-        shopName: 'QueSanrue Grooming',
-        queueNumberPrefix: 'Q',
-        serviceTypes: ['อาบน้ำ', 'ตัดขน', 'ตัดเล็บ', 'ทำสปา', 'ดูแลพิเศษ'],
-        priceList: {
-          'อาบน้ำ': 200,
-          'ตัดขน': 300,
-          'ตัดเล็บ': 100,
-          'ทำสปา': 500,
-          'ดูแลพิเศษ': 400
-        },
-        // NEW: Service durations in minutes
-        serviceDurations: {
-          'อาบน้ำ': 60,
-          'ตัดขน': 90,
-          'ตัดเล็บ': 30,
-          'ทำสปา': 45,
-          'ดูแลพิเศษ': 60,
-          // Combo overrides
-          'อาบน้ำ,ตัดขน': 120,
-          'อาบน้ำ,ตัดขน,ตัดเล็บ': 150,
-          'อาบน้ำ,ทำสปา': 120,
-          'อาบน้ำ,ตัดขน,ทำสปา': 180
-        },
-        // Working hours
-        defaultWorkingHours: {
-          start: '09:00',
-          end: '18:00'
-        }
+      dailySchedules: [],
+      settings: this.getDefaultSettings()
+    };
+
+    // Initial data load
+    this.initRealtimeListeners();
+  }
+
+  getDefaultSettings() {
+    return {
+      shopName: 'QueSanrue Grooming',
+      queueNumberPrefix: 'Q',
+      serviceTypes: ['อาบน้ำ', 'ตัดขน', 'ตัดเล็บ', 'ทำสปา', 'ดูแลพิเศษ'],
+      priceList: {
+        'อาบน้ำ': 200,
+        'ตัดขน': 300,
+        'ตัดเล็บ': 100,
+        'ทำสปา': 500,
+        'ดูแลพิเศษ': 400
+      },
+      serviceDurations: {
+        'อาบน้ำ': 60,
+        'ตัดขน': 90,
+        'ตัดเล็บ': 30,
+        'ทำสปา': 45,
+        'ดูแลพิเศษ': 60,
+        'อาบน้ำ,ตัดขน': 120,
+        'อาบน้ำ,ตัดขน,ตัดเล็บ': 150,
+        'อาบน้ำ,ทำสปา': 120,
+        'อาบน้ำ,ตัดขน,ทำสปา': 180
+      },
+      defaultWorkingHours: {
+        start: '09:00',
+        end: '18:00'
       }
     };
   }
 
-  saveData() {
-    localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+  // Initialize real-time listeners
+  initRealtimeListeners() {
+    if (!this.db) {
+      console.warn('Firestore not initialized, falling back to empty state');
+      return;
+    }
+
+    const collections = ['customers', 'pets', 'groomers', 'queue', 'serviceRecords', 'dailySchedules'];
+
+    collections.forEach(col => {
+      this.db.collection(col).onSnapshot(snapshot => {
+        this.data[col] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Trigger UI update if app is initialized
+        if (window.app) {
+          // We need to debounce or selectively update to avoid loops
+          // For simplicity, we just trigger render if appropriate
+          if (window.app.currentPage === 'dashboard') window.app.renderDashboard();
+          if (window.app.currentPage === 'queue') window.app.renderQueue();
+          if (window.app.currentPage === 'customers') window.app.renderCustomers();
+          if (window.app.currentPage === 'pets') window.app.renderPets();
+          if (window.app.currentPage === 'groomers') window.app.renderGroomers();
+        }
+      });
+    });
   }
 
+  // Async methods for adding data
+  async addCustomer(customer) {
+    const newCustomer = {
+      ...customer,
+      createdAt: new Date().toISOString(),
+      lastVisit: new Date().toISOString()
+    };
+
+    // Add to Firestore
+    try {
+      const docRef = await this.db.collection('customers').add(newCustomer);
+      return { id: docRef.id, ...newCustomer };
+    } catch (e) {
+      console.error("Error adding customer: ", e);
+      alert('บันทึกข้อมูลไม่สำเร็จ: ' + e.message);
+      return null;
+    }
+  }
+
+  async updateCustomer(id, updates) {
+    try {
+      await this.db.collection('customers').doc(id).update(updates);
+      return { id, ...updates };
+    } catch (e) {
+      console.error("Error updating customer: ", e);
+      alert('แก้ไขข้อมูลไม่สำเร็จ');
+      return null;
+    }
+  }
+
+  async deleteCustomer(id) {
+    try {
+      await this.db.collection('customers').doc(id).delete();
+    } catch (e) {
+      console.error("Error deleting customer: ", e);
+      alert('ลบข้อมูลไม่สำเร็จ');
+    }
+  }
+
+  // Helper for generating ID (not needed for Firestore but keeping for compat if needed elsewhere)
   generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
   // Customer operations
-  addCustomer(customer) {
-    const newCustomer = {
-      id: this.generateId(),
-      ...customer,
-      createdAt: new Date().toISOString(),
-      lastVisit: new Date().toISOString()
-    };
-    this.data.customers.push(newCustomer);
-    this.saveData();
-    return newCustomer;
-  }
-
-  updateCustomer(id, updates) {
-    const index = this.data.customers.findIndex(c => c.id === id);
-    if (index !== -1) {
-      this.data.customers[index] = { ...this.data.customers[index], ...updates };
-      this.saveData();
-      return this.data.customers[index];
-    }
-    return null;
-  }
-
-  deleteCustomer(id) {
-    this.data.customers = this.data.customers.filter(c => c.id !== id);
-    this.saveData();
+  // Getters remain synchronous because data is synced via listeners
+  getCustomers() {
+    return this.data.customers;
   }
 
   getCustomers() {
@@ -98,30 +134,40 @@ class DataStore {
   }
 
   // Pet operations
-  addPet(pet) {
+  // Pet operations
+  async addPet(pet) {
     const newPet = {
-      id: this.generateId(),
       ...pet,
       createdAt: new Date().toISOString()
     };
-    this.data.pets.push(newPet);
-    this.saveData();
-    return newPet;
-  }
-
-  updatePet(id, updates) {
-    const index = this.data.pets.findIndex(p => p.id === id);
-    if (index !== -1) {
-      this.data.pets[index] = { ...this.data.pets[index], ...updates };
-      this.saveData();
-      return this.data.pets[index];
+    try {
+      const docRef = await this.db.collection('pets').add(newPet);
+      return { id: docRef.id, ...newPet };
+    } catch (e) {
+      console.error("Error adding pet: ", e);
+      alert('บันทึกข้อมูลสัตว์เลี้ยงไม่สำเร็จ');
+      return null;
     }
-    return null;
   }
 
-  deletePet(id) {
-    this.data.pets = this.data.pets.filter(p => p.id !== id);
-    this.saveData();
+  async updatePet(id, updates) {
+    try {
+      await this.db.collection('pets').doc(id).update(updates);
+      return { id, ...updates };
+    } catch (e) {
+      console.error("Error updating pet: ", e);
+      alert('แก้ไขข้อมูลสัตว์เลี้ยงไม่สำเร็จ');
+      return null;
+    }
+  }
+
+  async deletePet(id) {
+    try {
+      await this.db.collection('pets').doc(id).delete();
+    } catch (e) {
+      console.error("Error deleting pet: ", e);
+      alert('ลบข้อมูลสัตว์เลี้ยงไม่สำเร็จ');
+    }
   }
 
   getPets() {
@@ -137,30 +183,40 @@ class DataStore {
   }
 
   // Groomer operations
-  addGroomer(groomer) {
+  // Groomer operations
+  async addGroomer(groomer) {
     const newGroomer = {
-      id: this.generateId(),
       ...groomer,
       createdAt: new Date().toISOString()
     };
-    this.data.groomers.push(newGroomer);
-    this.saveData();
-    return newGroomer;
-  }
-
-  updateGroomer(id, updates) {
-    const index = this.data.groomers.findIndex(g => g.id === id);
-    if (index !== -1) {
-      this.data.groomers[index] = { ...this.data.groomers[index], ...updates };
-      this.saveData();
-      return this.data.groomers[index];
+    try {
+      const docRef = await this.db.collection('groomers').add(newGroomer);
+      return { id: docRef.id, ...newGroomer };
+    } catch (e) {
+      console.error("Error adding groomer: ", e);
+      alert('บันทึกข้อมูลช่างไม่สำเร็จ');
+      return null;
     }
-    return null;
   }
 
-  deleteGroomer(id) {
-    this.data.groomers = this.data.groomers.filter(g => g.id !== id);
-    this.saveData();
+  async updateGroomer(id, updates) {
+    try {
+      await this.db.collection('groomers').doc(id).update(updates);
+      return { id, ...updates };
+    } catch (e) {
+      console.error("Error updating groomer: ", e);
+      alert('แก้ไขข้อมูลช่างไม่สำเร็จ');
+      return null;
+    }
+  }
+
+  async deleteGroomer(id) {
+    try {
+      await this.db.collection('groomers').doc(id).delete();
+    } catch (e) {
+      console.error("Error deleting groomer: ", e);
+      alert('ลบข้อมูลช่างไม่สำเร็จ');
+    }
   }
 
   getGroomers() {
@@ -214,13 +270,15 @@ class DataStore {
   }
 
   // Queue operations
-  addQueue(queueItem) {
-    // NEW: Use provided date or default to today
+  // Queue operations
+  async addQueue(queueItem) {
     const selectedDate = queueItem.date || new Date().toISOString().split('T')[0];
+
+    // We need to fetch current count for queue number (this might have race conditions in high concurrency but sufficient for now)
+    // For better reliability, we should use a transaction, but keeping it simple for now
     const queuesOnDate = this.data.queue.filter(q => q.date === selectedDate);
     const queueNumber = queuesOnDate.length + 1;
 
-    // NEW: Calculate service duration and end time
     const duration = this.calculateServiceDuration(queueItem.serviceType);
     let estimatedEndTime = null;
 
@@ -234,18 +292,12 @@ class DataStore {
     }
 
     const newQueue = {
-      id: this.generateId(),
       queueNumber,
       date: selectedDate,
-
-      // NEW: Time management
       appointmentTime: queueItem.appointmentTime || null,
       estimatedEndTime,
       duration,
-
-      // NEW: Pre-assigned groomer (will be set by smart assignment)
       assignedGroomerId: queueItem.assignedGroomerId || null,
-
       status: 'booking',
       bookingAt: new Date().toISOString(),
       depositAmount: null,
@@ -260,40 +312,53 @@ class DataStore {
       createdAt: new Date().toISOString()
     };
 
-    this.data.queue.push(newQueue);
-    this.saveData();
-    return newQueue;
-  }
-
-  updateQueue(id, updates) {
-    const index = this.data.queue.findIndex(q => q.id === id);
-    if (index !== -1) {
-      const queue = this.data.queue[index];
-
-      // Auto-update timestamps based on status
-      if (updates.status === 'deposit' && !queue.depositAt) {
-        updates.depositAt = new Date().toISOString();
-      }
-      if (updates.status === 'check-in' && !queue.checkInAt) {
-        updates.checkInAt = new Date().toISOString();
-      }
-      if (updates.status === 'completed' && !queue.completedAt) {
-        updates.completedAt = new Date().toISOString();
-
-        // Create service record when completed
-        this.createServiceRecord({ ...queue, ...updates });
-      }
-
-      this.data.queue[index] = { ...queue, ...updates };
-      this.saveData();
-      return this.data.queue[index];
+    try {
+      const docRef = await this.db.collection('queue').add(newQueue);
+      return { id: docRef.id, ...newQueue };
+    } catch (e) {
+      console.error("Error adding queue: ", e);
+      alert('จองคิวไม่สำเร็จ');
+      return null;
     }
-    return null;
   }
 
-  deleteQueue(id) {
-    this.data.queue = this.data.queue.filter(q => q.id !== id);
-    this.saveData();
+  async updateQueue(id, updates) {
+    // Auto-update timestamps based on status logic (moved from original)
+    const queue = this.data.queue.find(q => q.id === id);
+    if (!queue) return null;
+
+    const timestampUpdates = {};
+    if (updates.status === 'deposit' && !queue.depositAt) {
+      timestampUpdates.depositAt = new Date().toISOString();
+    }
+    if (updates.status === 'check-in' && !queue.checkInAt) {
+      timestampUpdates.checkInAt = new Date().toISOString();
+    }
+    if (updates.status === 'completed' && !queue.completedAt) {
+      timestampUpdates.completedAt = new Date().toISOString();
+      // Create service record
+      this.createServiceRecord({ ...queue, ...updates, ...timestampUpdates });
+    }
+
+    const finalUpdates = { ...updates, ...timestampUpdates };
+
+    try {
+      await this.db.collection('queue').doc(id).update(finalUpdates);
+      return { id, ...queue, ...finalUpdates };
+    } catch (e) {
+      console.error("Error updating queue: ", e);
+      alert('อัปเดตสถานะคิวไม่สำเร็จ');
+      return null;
+    }
+  }
+
+  async deleteQueue(id) {
+    try {
+      await this.db.collection('queue').doc(id).delete();
+    } catch (e) {
+      console.error("Error deleting queue: ", e);
+      alert('ลบคิวไม่สำเร็จ');
+    }
   }
 
   // Get today's queue (using local date, not UTC)
@@ -325,8 +390,9 @@ class DataStore {
 
   setDailySchedule(date, groomers) {
     const existingIndex = this.data.dailySchedules.findIndex(s => s.date === date);
+    const existingId = existingIndex >= 0 ? this.data.dailySchedules[existingIndex].id : null;
+
     const schedule = {
-      id: existingIndex >= 0 ? this.data.dailySchedules[existingIndex].id : this.generateId(),
       date,
       groomers: groomers.map(g => ({
         groomerId: g.groomerId,
@@ -337,13 +403,15 @@ class DataStore {
       totalCapacity: groomers.length
     };
 
-    if (existingIndex >= 0) {
-      this.data.dailySchedules[existingIndex] = schedule;
+    // Save to Firestore
+    if (existingId) {
+      this.db.collection('dailySchedules').doc(existingId).update(schedule)
+        .catch(e => console.error("Error creating daily schedule: ", e));
     } else {
-      this.data.dailySchedules.push(schedule);
+      this.db.collection('dailySchedules').add(schedule)
+        .catch(e => console.error("Error creating daily schedule: ", e));
     }
 
-    this.saveData();
     return schedule;
   }
 
@@ -1213,7 +1281,7 @@ class PetGroomingApp {
   // CUSTOMER OPERATIONS
   // ===================================
 
-  saveCustomer() {
+  async saveCustomer() {
     const id = document.getElementById('customer-id').value;
     const customerData = {
       name: document.getElementById('customer-name').value,
@@ -1229,12 +1297,13 @@ class PetGroomingApp {
     }
 
     if (id) {
-      this.store.updateCustomer(id, customerData);
+      await this.store.updateCustomer(id, customerData);
     } else {
-      this.store.addCustomer(customerData);
+      await this.store.addCustomer(customerData);
     }
 
     this.closeModal('modal-customer');
+    // No need to call render manually as listener will handle it, but for safety/instant feedback:
     this.renderCustomers();
     this.renderDashboard();
   }
@@ -1253,9 +1322,9 @@ class PetGroomingApp {
     this.openModal('modal-customer');
   }
 
-  deleteCustomer(id) {
+  async deleteCustomer(id) {
     if (confirm('คุณแน่ใจหรือไม่ที่จะลบลูกค้ารายนี้?')) {
-      this.store.deleteCustomer(id);
+      await this.store.deleteCustomer(id);
       this.renderCustomers();
       this.renderDashboard();
     }
@@ -1265,7 +1334,7 @@ class PetGroomingApp {
   // PET OPERATIONS
   // ===================================
 
-  savePet() {
+  async savePet() {
     const id = document.getElementById('pet-id').value;
     const petData = {
       customerId: document.getElementById('pet-customer').value,
@@ -1284,9 +1353,9 @@ class PetGroomingApp {
     }
 
     if (id) {
-      this.store.updatePet(id, petData);
+      await this.store.updatePet(id, petData);
     } else {
-      this.store.addPet(petData);
+      await this.store.addPet(petData);
     }
 
     this.closeModal('modal-pet');
@@ -1313,9 +1382,9 @@ class PetGroomingApp {
     this.openModal('modal-pet');
   }
 
-  deletePet(id) {
+  async deletePet(id) {
     if (confirm('คุณแน่ใจหรือไม่ที่จะลบสัตว์เลี้ยงตัวนี้?')) {
-      this.store.deletePet(id);
+      await this.store.deletePet(id);
       this.renderPets();
     }
   }
@@ -1324,7 +1393,7 @@ class PetGroomingApp {
   // GROOMER OPERATIONS
   // ===================================
 
-  saveGroomer() {
+  async saveGroomer() {
     const id = document.getElementById('groomer-id').value;
 
     const specialtySelect = document.getElementById('groomer-specialty');
@@ -1347,9 +1416,9 @@ class PetGroomingApp {
     }
 
     if (id) {
-      this.store.updateGroomer(id, groomerData);
+      await this.store.updateGroomer(id, groomerData);
     } else {
-      this.store.addGroomer(groomerData);
+      await this.store.addGroomer(groomerData);
     }
 
     this.closeModal('modal-groomer');
@@ -1380,9 +1449,9 @@ class PetGroomingApp {
     this.openModal('modal-groomer');
   }
 
-  deleteGroomer(id) {
+  async deleteGroomer(id) {
     if (confirm('คุณแน่ใจหรือไม่ที่จะลบช่างคนนี้?')) {
-      this.store.deleteGroomer(id);
+      await this.store.deleteGroomer(id);
       this.renderGroomers();
     }
   }
@@ -1391,7 +1460,7 @@ class PetGroomingApp {
   // QUEUE OPERATIONS
   // ===================================
 
-  saveQueue() {
+  async saveQueue() {
     const customerId = document.getElementById('queue-customer').value;
     const petId = document.getElementById('queue-pet').value;
     const groomerId = document.getElementById('queue-groomer').value;
@@ -1427,7 +1496,8 @@ class PetGroomingApp {
       return;
     }
 
-    const queue = this.store.addQueue(queueData);
+    const queue = await this.store.addQueue(queueData);
+    if (!queue) return;
 
     // Calculate duration display
     const duration = queue.duration;
@@ -1682,7 +1752,7 @@ class PetGroomingApp {
     document.getElementById('quick-customer-phone').value = '';
   }
 
-  saveQuickCustomer() {
+  async saveQuickCustomer() {
     const name = document.getElementById('quick-customer-name').value;
     const socialName = document.getElementById('quick-customer-social-name').value;
     const phone = document.getElementById('quick-customer-phone').value;
@@ -1692,13 +1762,15 @@ class PetGroomingApp {
       return;
     }
 
-    const customer = this.store.addCustomer({
+    const customer = await this.store.addCustomer({
       name,
       socialName,
       phone,
       email: '',
       address: ''
     });
+
+    if (!customer) return;
 
     // Update dropdown
     this.populateCustomerDropdown('queue-customer');
@@ -1734,7 +1806,7 @@ class PetGroomingApp {
     document.getElementById('quick-pet-type').value = '';
   }
 
-  saveQuickPet() {
+  async saveQuickPet() {
     const customerId = document.getElementById('queue-customer').value;
     const name = document.getElementById('quick-pet-name').value;
     const type = document.getElementById('quick-pet-type').value;
@@ -1744,7 +1816,7 @@ class PetGroomingApp {
       return;
     }
 
-    const pet = this.store.addPet({
+    const pet = await this.store.addPet({
       customerId,
       name,
       type,
@@ -1754,6 +1826,8 @@ class PetGroomingApp {
       birthDate: '',
       notes: ''
     });
+
+    if (!pet) return;
 
     // Update pets dropdown
     this.loadPetsByCustomer();
@@ -1778,7 +1852,7 @@ class PetGroomingApp {
     this.openModal('modal-deposit');
   }
 
-  saveDeposit() {
+  async saveDeposit() {
     const amount = parseFloat(document.getElementById('deposit-amount').value);
     const method = document.getElementById('deposit-method').value;
 
@@ -1787,7 +1861,7 @@ class PetGroomingApp {
       return;
     }
 
-    this.store.updateQueue(this.currentQueueId, {
+    await this.store.updateQueue(this.currentQueueId, {
       status: 'deposit',
       depositAmount: amount,
       depositMethod: method
@@ -1826,7 +1900,7 @@ class PetGroomingApp {
     }
   }
 
-  saveCheckIn() {
+  async saveCheckIn() {
     const weight = parseFloat(document.getElementById('checkin-weight').value);
     const notes = document.getElementById('checkin-notes').value;
 
@@ -1836,10 +1910,10 @@ class PetGroomingApp {
     }
 
     // Update pet weight
-    this.store.updatePet(this.currentPet.id, { weight });
+    await this.store.updatePet(this.currentPet.id, { weight });
 
     // Update queue status
-    this.store.updateQueue(this.currentQueueId, {
+    await this.store.updateQueue(this.currentQueueId, {
       status: 'check-in',
       checkInWeight: weight,
       checkInNotes: notes
@@ -1914,7 +1988,7 @@ class PetGroomingApp {
     });
   }
 
-  saveCompletion() {
+  async saveCompletion() {
     const groomerId = document.getElementById('completion-groomer').value;
     const notes = document.getElementById('completion-notes').value;
 
@@ -1929,7 +2003,7 @@ class PetGroomingApp {
       }
     }
 
-    this.store.updateQueue(this.currentQueueId, {
+    await this.store.updateQueue(this.currentQueueId, {
       status: 'completed',
       groomerId,
       completionImages: this.completionImages,
