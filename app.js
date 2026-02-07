@@ -683,6 +683,13 @@ class PetGroomingApp {
       queueSearch.addEventListener('input', () => this.renderQueue());
     }
 
+    const queueDateFilter = document.getElementById('queue-date-filter');
+    if (queueDateFilter) {
+      // Set default value to today
+      queueDateFilter.value = this.getTodayString();
+      queueDateFilter.addEventListener('change', () => this.renderQueue());
+    }
+
     const serviceSearch = document.getElementById('service-search');
     if (serviceSearch) {
       serviceSearch.addEventListener('input', () => this.renderServices());
@@ -731,10 +738,19 @@ class PetGroomingApp {
 
   renderQueue() {
     const searchTerm = document.getElementById('queue-search')?.value.toLowerCase() || '';
-    let todayQueue = this.store.getTodayQueue();
+    const dateFilter = document.getElementById('queue-date-filter');
+
+    // Use date from filter or default to today
+    let filterDate = dateFilter?.value;
+    if (!filterDate) {
+      filterDate = this.getTodayString();
+      if (dateFilter) dateFilter.value = filterDate;
+    }
+
+    let displayQueue = this.store.getQueueByDate(filterDate);
 
     if (searchTerm) {
-      todayQueue = todayQueue.filter(q => {
+      displayQueue = displayQueue.filter(q => {
         const customer = this.store.getCustomerById(q.customerId);
         const pet = this.store.getPetById(q.petId);
         return customer?.name.toLowerCase().includes(searchTerm) ||
@@ -744,7 +760,7 @@ class PetGroomingApp {
     }
 
     const queueList = document.getElementById('queue-list');
-    if (todayQueue.length === 0) {
+    if (displayQueue.length === 0) {
       queueList.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon">📋</div>
@@ -753,7 +769,7 @@ class PetGroomingApp {
         </div>
       `;
     } else {
-      queueList.innerHTML = todayQueue.map(q => this.createQueueCard(q)).join('');
+      queueList.innerHTML = displayQueue.map(q => this.createQueueCard(q)).join('');
     }
   }
 

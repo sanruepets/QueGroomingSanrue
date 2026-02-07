@@ -156,9 +156,12 @@
           </div>
         </div>
 
-        <div class="search-bar">
-          <span class="search-icon">🔍</span>
-          <input type="text" class="search-input" id="queue-search" placeholder="ค้นหาคิว...">
+        <div class="search-and-filter" style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+          <div class="search-bar" style="flex: 1; margin-bottom: 0;">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" id="queue-search" placeholder="ค้นหาคิว...">
+          </div>
+          <input type="date" class="form-input" id="queue-date-filter" style="width: auto;">
         </div>
 
         <div id="queue-list" class="queue-grid"></div>
