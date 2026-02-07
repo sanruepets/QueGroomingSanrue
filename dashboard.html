@@ -298,6 +298,7 @@
                     <th>บริการ</th>
                     <th>ระยะเวลา</th>
                     <th>ราคา</th>
+                    <th>การจัดการ</th>
                   </tr>
                 </thead>
                 <tbody id="services-tbody"></tbody>
@@ -604,6 +605,11 @@
                   </select>
                 </div>
               </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <input type="text" class="form-input" id="quick-pet-breed" placeholder="สายพันธุ์">
+                </div>
+              </div>
               <div class="form-actions">
                 <button type="button" class="btn btn-sm btn-secondary" onclick="app.cancelQuickAddPet()">ยกเลิก</button>
                 <button type="button" class="btn btn-sm btn-primary" onclick="app.saveQuickPet()">บันทึก</button>
@@ -778,6 +784,33 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="app.closeModal('modal-completion')">ยกเลิก</button>
         <button class="btn btn-primary" onclick="app.saveCompletion()">ปิดงาน</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Service Modal -->
+  <div id="modal-edit-service" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-edit-service-title">แก้ไขบันทึกบริการ</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-edit-service')">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-edit-service">
+          <input type="hidden" id="edit-service-id">
+          <div class="form-group">
+            <label class="form-label required">ราคา (บาท)</label>
+            <input type="number" class="form-input" id="edit-service-price" step="0.01" min="0" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">หมายเหตุ</label>
+            <textarea class="form-textarea" id="edit-service-notes" rows="3"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('modal-edit-service')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="app.saveServiceUpdate()">บันทึก</button>
       </div>
     </div>
   </div>

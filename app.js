@@ -348,6 +348,13 @@ class DataStore {
 
     const finalUpdates = { ...updates, ...timestampUpdates };
 
+    // NEW: Update pet's weight if provided during check-in
+    if (updates.checkInWeight && queue.petId) {
+      this.db.collection('pets').doc(queue.petId).update({
+        weight: parseFloat(updates.checkInWeight)
+      }).catch(e => console.error("Error updating pet weight: ", e));
+    }
+
     try {
       await this.db.collection('queue').doc(id).update(finalUpdates);
       return { id, ...queue, ...finalUpdates };
@@ -552,9 +559,29 @@ class DataStore {
       createdAt: new Date().toISOString()
     };
 
-    this.data.serviceRecords.push(serviceRecord);
-    this.saveData();
+    // Save to Firestore
+    this.db.collection('serviceRecords').add(serviceRecord)
+      .then(docRef => {
+        console.log("Service record created with ID: ", docRef.id);
+      })
+      .catch(error => {
+        console.error("Error adding service record: ", error);
+        alert('บันทึกประวัติบริการไม่สำเร็จ');
+      });
+
     return serviceRecord;
+  }
+
+  // NEW: Update service record
+  async updateServiceRecord(id, updates) {
+    try {
+      await this.db.collection('serviceRecords').doc(id).update(updates);
+      return { id, ...updates };
+    } catch (e) {
+      console.error("Error updating service record: ", e);
+      alert('แก้ไขประวัติบริการไม่สำเร็จ');
+      return null;
+    }
   }
 
   calculatePrice(services) {
@@ -584,6 +611,7 @@ class DataStore {
 
 class PetGroomingApp {
   constructor() {
+    window.app = this; // Fix: Make app instance available globally immediately
     this.store = new DataStore();
     this.currentPage = 'dashboard';
     this.selectedDashboardDate = null; // null = today
@@ -1102,7 +1130,7 @@ class PetGroomingApp {
     if (services.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-gray);">
+          <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-gray);">
             ไม่พบบันทึกบริการ
           </td>
         </tr>
@@ -1122,6 +1150,9 @@ class PetGroomingApp {
             <td>${s.servicesPerformed.join(', ')}</td>
             <td>${s.duration} นาที</td>
             <td><strong>${s.price} บาท</strong></td>
+            <td>
+              <button class="btn btn-sm btn-info" onclick="app.showEditServiceModal('${s.id}')">✏️ แก้ไข</button>
+            </td>
           </tr>
         `;
       }).join('');
@@ -1952,12 +1983,14 @@ class PetGroomingApp {
     document.getElementById('quick-pet-form').classList.add('hidden');
     document.getElementById('quick-pet-name').value = '';
     document.getElementById('quick-pet-type').value = '';
+    document.getElementById('quick-pet-breed').value = '';
   }
 
   async saveQuickPet() {
     const customerId = document.getElementById('queue-customer').value;
     const name = document.getElementById('quick-pet-name').value;
     const type = document.getElementById('quick-pet-type').value;
+    const breed = document.getElementById('quick-pet-breed').value;
 
     if (!name || !type) {
       alert('กรุณากรอกชื่อสัตว์เลี้ยงและเลือกประเภท');
@@ -1968,7 +2001,7 @@ class PetGroomingApp {
       customerId,
       name,
       type,
-      breed: '',
+      breed: breed || '',
       weight: null,
       color: '',
       birthDate: '',
@@ -2161,7 +2194,44 @@ class PetGroomingApp {
     this.closeModal('modal-completion');
     this.renderQueue();
     this.renderDashboard();
+    this.renderQueue();
+    this.renderDashboard();
     alert('ปิดงานสำเร็จ!');
+  }
+
+  // NEW: Edit Service Modal
+  showEditServiceModal(serviceId) {
+    const service = this.store.getServiceRecords().find(s => s.id === serviceId);
+    if (!service) return;
+
+    this.currentServiceId = serviceId;
+    document.getElementById('edit-service-id').value = serviceId;
+    document.getElementById('edit-service-price').value = service.price;
+    document.getElementById('edit-service-notes').value = service.notes || '';
+
+    this.openModal('modal-edit-service');
+  }
+
+  async saveServiceUpdate() {
+    const serviceId = this.currentServiceId;
+    const price = parseFloat(document.getElementById('edit-service-price').value);
+    const notes = document.getElementById('edit-service-notes').value;
+
+    if (isNaN(price) || price < 0) {
+      alert('กรุณากรอกราคาที่ถูกต้อง');
+      return;
+    }
+
+    const result = await this.store.updateServiceRecord(serviceId, {
+      price,
+      notes
+    });
+
+    if (result) {
+      this.closeModal('modal-edit-service');
+      this.renderServices();
+      alert('แก้ไขข้อมูลสำเร็จ');
+    }
   }
 
   populateGroomerDropdown(selectId = 'queue-groomer') {
