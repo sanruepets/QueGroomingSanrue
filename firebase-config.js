@@ -13,6 +13,13 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+// Force long polling for mobile devices (iOS WebKit compatibility)
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+if (isMobile) {
+    db.settings({ experimentalForceLongPolling: true });
+}
+
 window.db = db; // Make available globally for app.js
 
 // Enable offline persistence

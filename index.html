@@ -290,10 +290,10 @@
                 const db = firebase.firestore();
 
                 // Query user by username with timeout
-                const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('การเชื่อมต่อฐานข้อมูลล่าช้า (Timeout) กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต')), 15000)
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('การเชื่อมต่อล่าช้าเกินไป (30s) กรุณาลองใหม่อีกครั้ง หรือตรวจสอบสัญญาณอินเทอร์เน็ต')), 30000)
                 );
-                
+
                 const snapshot = await Promise.race([
                     db.collection('users').where('username', '==', username).get(),
                     timeoutPromise
