@@ -289,14 +289,21 @@
                 // Initialize Firestore (if not already done by firebase-config.js)
                 const db = firebase.firestore();
 
-                // Query user by username
-                const snapshot = await db.collection('users').where('username', '==', username).get();
+                // Query user by username with timeout
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('การเชื่อมต่อฐานข้อมูลล่าช้า (Timeout) กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต')), 15000)
+                );
+                
+                const snapshot = await Promise.race([
+                    db.collection('users').where('username', '==', username).get(),
+                    timeoutPromise
+                ]);
 
                 if (snapshot.empty) {
                     throw new Error('ไม่พบชื่อผู้ใช้นี้');
                 }
 
-                // Check password (In real production, use bcrypt/hashing!)
+                // Check password
                 let user = null;
                 snapshot.forEach(doc => {
                     const userData = doc.data();
