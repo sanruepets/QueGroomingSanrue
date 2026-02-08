@@ -22,15 +22,40 @@ if (isMobile) {
 
 window.db = db; // Make available globally for app.js
 
-// Enable offline persistence
-// Enable offline persistence with multi-tab support
-db.enablePersistence({ synchronizeTabs: true })
-    .catch((err) => {
-        if (err.code == 'failed-precondition') {
-            // Multiple tabs open, persistence can only be enabled in one tab at a a time.
-            console.warn('Persistence failed: Multiple tabs open (persistence disabled in this tab)');
-        } else if (err.code == 'unimplemented') {
-            // The current browser does not support all of the features required to enable persistence
-            console.warn('Persistence failed: Browser not supported');
+
+// Detect private browsing mode (Safari private mode blocks IndexedDB)
+function isPrivateMode() {
+    return new Promise((resolve) => {
+        const testKey = '__firebase_test__';
+        try {
+            if (!window.indexedDB) {
+                resolve(true);
+                return;
+            }
+            const request = indexedDB.open(testKey);
+            request.onsuccess = () => {
+                indexedDB.deleteDatabase(testKey);
+                resolve(false);
+            };
+            request.onerror = () => resolve(true);
+        } catch (e) {
+            resolve(true);
         }
     });
+}
+
+// Enable offline persistence only if not in private browsing mode
+isPrivateMode().then(isPrivate => {
+    if (!isPrivate) {
+        db.enablePersistence({ synchronizeTabs: true })
+            .catch((err) => {
+                if (err.code == 'failed-precondition') {
+                    console.warn('Persistence failed: Multiple tabs open');
+                } else if (err.code == 'unimplemented') {
+                    console.warn('Persistence failed: Browser not supported');
+                }
+            });
+    } else {
+        console.log('🔒 Private browsing detected - running without offline persistence');
+    }
+});
