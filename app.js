@@ -17,6 +17,9 @@ class DataStore {
       settings: this.getDefaultSettings()
     };
 
+    this.initializedCollections = new Set();
+    this.initialCollections = ['customers', 'pets', 'groomers', 'queue', 'serviceRecords', 'dailySchedules', 'users'];
+
     // Initial data load
     this.initRealtimeListeners();
   }
@@ -85,7 +88,7 @@ class DataStore {
       return;
     }
 
-    const collections = ['customers', 'pets', 'groomers', 'queue', 'serviceRecords', 'dailySchedules', 'users'];
+    const collections = this.initialCollections;
 
     collections.forEach(col => {
       this.db.collection(col).onSnapshot(snapshot => {
@@ -94,8 +97,18 @@ class DataStore {
           // Always use the real Firestore document ID
           return { ...data, id: doc.id };
         });
+
+        // Mark collection as initialized
+        this.initializedCollections.add(col);
+
+        // Check if all essential collections are loaded
+        if (this.initializedCollections.size >= collections.length && window.app && window.app.loading) {
+          console.log('[DEBUG] All initial collections loaded');
+          window.app.onInitDataLoaded();
+        }
+
         // Trigger UI update if app is initialized
-        if (window.app) {
+        if (window.app && !window.app.loading) {
           // We need to debounce or selectively update to avoid loops
           // For simplicity, we just trigger render if appropriate
           if (window.app.currentPage === 'dashboard') window.app.renderDashboard();
@@ -779,11 +792,23 @@ class PetGroomingApp {
     this.loadSampleData();
     this.renderDashboard(); // Trigger initial render (shows skeleton)
 
-    // Simulate loading delay for skeleton demo
+    // Safety timeout in case some collection fails to load or permissions are restricted
     setTimeout(() => {
-      this.loading = false;
-      this.renderDashboard(); // Trigger re-render
-    }, 1500);
+      if (this.loading) {
+        console.warn('Initialization timed out, force clearing loading state');
+        this.onInitDataLoaded();
+      }
+    }, 5000);
+  }
+
+  // NEW: Called when initial data is loaded from Firebase
+  onInitDataLoaded() {
+    this.loading = false;
+    this.renderDashboard();
+    // Also re-render other pages if they were the initial land page
+    if (this.currentPage !== 'dashboard') {
+      this.navigateTo(this.currentPage);
+    }
   }
 
   // NEW: Button Loading Helper
@@ -1146,10 +1171,23 @@ class PetGroomingApp {
     const totalCustomers = this.store.getCustomers().length;
 
     // Update stats
-    document.getElementById('stat-queue-today').textContent = queueForDate.length;
-    document.getElementById('stat-queue-waiting').textContent = waitingQueue.length;
-    document.getElementById('stat-queue-completed').textContent = completedQueue.length;
-    document.getElementById('stat-total-customers').textContent = totalCustomers;
+    const statsToday = document.getElementById('stat-queue-today');
+    const statsWaiting = document.getElementById('stat-queue-waiting');
+    const statsCompleted = document.getElementById('stat-queue-completed');
+    const statsCustomers = document.getElementById('stat-total-customers');
+
+    if (this.loading) {
+      const skeletonPulse = '<span class="skeleton-pulse">...</span>';
+      if (statsToday) statsToday.innerHTML = skeletonPulse;
+      if (statsWaiting) statsWaiting.innerHTML = skeletonPulse;
+      if (statsCompleted) statsCompleted.innerHTML = skeletonPulse;
+      if (statsCustomers) statsCustomers.innerHTML = skeletonPulse;
+    } else {
+      if (statsToday) statsToday.textContent = queueForDate.length;
+      if (statsWaiting) statsWaiting.textContent = waitingQueue.length;
+      if (statsCompleted) statsCompleted.textContent = completedQueue.length;
+      if (statsCustomers) statsCustomers.textContent = totalCustomers;
+    }
 
     // Render calendar
     this.renderCalendar();
