@@ -286,8 +286,8 @@
             const password = document.getElementById('password').value;
 
             try {
-                // Initialize Firestore (if not already done by firebase-config.js)
-                const db = firebase.firestore();
+                // Use the configured Firestore instance from firebase-config.js
+                const db = window.db;
 
                 // Query user by username with timeout
                 const timeoutPromise = new Promise((_, reject) =>
