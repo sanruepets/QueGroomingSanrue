@@ -23,39 +23,23 @@ if (isMobile) {
 window.db = db; // Make available globally for app.js
 
 
-// Detect private browsing mode (Safari private mode blocks IndexedDB)
-function isPrivateMode() {
-    return new Promise((resolve) => {
-        const testKey = '__firebase_test__';
-        try {
-            if (!window.indexedDB) {
-                resolve(true);
-                return;
+// Try to enable persistence, but don't block app if it fails (Safari private mode)
+try {
+    db.enablePersistence({ synchronizeTabs: true })
+        .then(() => {
+            console.log('✓ Offline persistence enabled');
+        })
+        .catch((err) => {
+            if (err.code === 'failed-precondition') {
+                console.warn('⚠️ Persistence disabled: Multiple tabs open');
+            } else if (err.code === 'unimplemented') {
+                console.warn('⚠️ Persistence not supported by browser');
+            } else {
+                console.warn('⚠️ Persistence failed:', err.code);
             }
-            const request = indexedDB.open(testKey);
-            request.onsuccess = () => {
-                indexedDB.deleteDatabase(testKey);
-                resolve(false);
-            };
-            request.onerror = () => resolve(true);
-        } catch (e) {
-            resolve(true);
-        }
-    });
+            // App continues to work without persistence
+        });
+} catch (err) {
+    console.warn('⚠️ Persistence initialization failed (likely private mode):', err);
+    // App continues to work without persistence
 }
-
-// Enable offline persistence only if not in private browsing mode
-isPrivateMode().then(isPrivate => {
-    if (!isPrivate) {
-        db.enablePersistence({ synchronizeTabs: true })
-            .catch((err) => {
-                if (err.code == 'failed-precondition') {
-                    console.warn('Persistence failed: Multiple tabs open');
-                } else if (err.code == 'unimplemented') {
-                    console.warn('Persistence failed: Browser not supported');
-                }
-            });
-    } else {
-        console.log('🔒 Private browsing detected - running without offline persistence');
-    }
-});
