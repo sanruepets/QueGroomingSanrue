@@ -16,13 +16,14 @@ const db = firebase.firestore();
 window.db = db; // Make available globally for app.js
 
 // Enable offline persistence
-db.enablePersistence()
+// Enable offline persistence with multi-tab support
+db.enablePersistence({ synchronizeTabs: true })
     .catch((err) => {
         if (err.code == 'failed-precondition') {
             // Multiple tabs open, persistence can only be enabled in one tab at a a time.
-            console.log('Persistence failed: Multiple tabs open');
+            console.warn('Persistence failed: Multiple tabs open (persistence disabled in this tab)');
         } else if (err.code == 'unimplemented') {
             // The current browser does not support all of the features required to enable persistence
-            console.log('Persistence failed: Browser not supported');
+            console.warn('Persistence failed: Browser not supported');
         }
     });

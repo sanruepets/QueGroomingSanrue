@@ -7,29 +7,75 @@
     <title>เข้าสู่ระบบ - QueSanrueGrooming</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        .login-container {
+        :root {
+            --primary: #FF6D00;
+            --secondary: #1565C0;
+            --bg-gradient: linear-gradient(135deg, #F0F4F8 0%, #D9E2EC 100%);
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --shadow-premium: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Prompt', sans-serif;
+            background: var(--bg-gradient);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--gradient-cool);
-            padding: var(--spacing-md);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Decorative Background Blobs */
+        .blob {
+            position: absolute;
+            z-index: 0;
+            filter: blur(80px);
+            border-radius: 50%;
+            opacity: 0.4;
+        }
+
+        .blob-orange {
+            width: 400px;
+            height: 400px;
+            background: var(--primary);
+            top: -100px;
+            right: -100px;
+        }
+
+        .blob-blue {
+            width: 350px;
+            height: 350px;
+            background: var(--secondary);
+            bottom: -50px;
+            left: -50px;
+        }
+
+        .login-container {
+            z-index: 10;
+            width: 100%;
+            max-width: 440px;
+            padding: 20px;
         }
 
         .login-card {
-            background: var(--white);
-            border-radius: var(--radius-xl);
-            box-shadow: var(--shadow-xl);
-            padding: var(--spacing-2xl);
-            width: 100%;
-            max-width: 420px;
-            animation: slideUp 0.5s ease;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 24px;
+            box-shadow: var(--shadow-premium);
+            padding: 40px;
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+            animation: cardAppear 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
-        @keyframes slideUp {
+        @keyframes cardAppear {
             from {
                 opacity: 0;
-                transform: translateY(30px);
+                transform: translateY(40px);
             }
 
             to {
@@ -40,79 +86,98 @@
 
         .login-logo {
             text-align: center;
-            margin-bottom: var(--spacing-xl);
+            margin-bottom: 32px;
         }
 
         .login-logo-icon {
             font-size: 4rem;
-            margin-bottom: var(--spacing-sm);
+            margin-bottom: 8px;
+            display: inline-block;
+            animation: bounce 2s infinite ease-in-out;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
         }
 
         .login-logo h1 {
-            font-size: 2rem;
-            color: var(--dark-gray);
-            margin-bottom: var(--spacing-xs);
-            background: var(--gradient-primary);
+            font-size: 2.5rem;
+            margin: 0;
+            font-weight: 800;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
         .login-logo p {
-            color: var(--text-gray);
-            font-size: 0.875rem;
+            color: #486581;
+            font-size: 0.95rem;
+            margin-top: 4px;
+            font-weight: 500;
         }
 
         .login-form {
             display: flex;
             flex-direction: column;
-            gap: var(--spacing-lg);
+            gap: 20px;
         }
 
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: var(--spacing-sm);
+            gap: 8px;
         }
 
         .form-group label {
-            font-weight: 500;
-            color: var(--dark-gray);
-            font-size: 0.875rem;
+            font-weight: 600;
+            color: #102A43;
+            font-size: 0.9rem;
+            margin-left: 4px;
         }
 
         .form-group input {
-            padding: var(--spacing-md);
-            border: 2px solid var(--border-gray);
-            border-radius: var(--radius-md);
+            background: white;
+            padding: 14px 18px;
+            border: 2px solid #D9E2EC;
+            border-radius: 14px;
             font-size: 1rem;
-            transition: var(--transition-normal);
-            font-family: 'Kanit', sans-serif;
+            transition: all 0.2s ease;
+            color: #102A43;
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: var(--primary-orange);
-            box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(255, 109, 0, 0.1);
         }
 
         .login-btn {
-            background: var(--gradient-primary);
-            color: var(--white);
+            background: var(--primary);
+            color: white;
             border: none;
-            padding: var(--spacing-md) var(--spacing-xl);
-            border-radius: var(--radius-md);
-            font-size: 1.125rem;
-            font-weight: 600;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: var(--transition-normal);
-            font-family: 'Kanit', sans-serif;
-            min-height: 48px;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 8px 16px rgba(255, 109, 0, 0.2);
         }
 
         .login-btn:hover {
+            background: #E65100;
             transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 12px 24px rgba(255, 109, 0, 0.3);
         }
 
         .login-btn:active {
@@ -120,18 +185,20 @@
         }
 
         .error-message {
-            background: rgba(220, 53, 69, 0.1);
-            border: 1px solid var(--error);
-            color: var(--error);
-            padding: var(--spacing-md);
-            border-radius: var(--radius-md);
-            font-size: 0.875rem;
+            background: #FFF5F5;
+            border: 1px solid #FEB2B2;
+            color: #C53030;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            text-align: center;
+            margin-bottom: 20px;
             display: none;
         }
 
         .error-message.show {
             display: block;
-            animation: shake 0.5s ease;
+            animation: shake 0.4s ease-in-out;
         }
 
         @keyframes shake {
@@ -142,31 +209,33 @@
             }
 
             25% {
-                transform: translateX(-10px);
+                transform: translateX(-8px);
             }
 
             75% {
-                transform: translateX(10px);
+                transform: translateX(8px);
             }
         }
 
         .login-info {
-            margin-top: var(--spacing-lg);
-            padding: var(--spacing-md);
-            background: var(--light-gray);
-            border-radius: var(--radius-md);
-            font-size: 0.875rem;
-            color: var(--text-gray);
+            margin-top: 28px;
+            font-size: 0.85rem;
+            color: #486581;
             text-align: center;
+            border-top: 1px solid #D9E2EC;
+            padding-top: 20px;
         }
 
         .login-info strong {
-            color: var(--primary-orange);
+            color: var(--primary);
         }
     </style>
 </head>
 
 <body>
+    <div class="blob blob-orange"></div>
+    <div class="blob blob-blue"></div>
+
     <div class="login-container">
         <div class="login-card">
             <div class="login-logo">
@@ -181,46 +250,92 @@
                 <div class="form-group">
                     <label for="username">ชื่อผู้ใช้</label>
                     <input type="text" id="username" name="username" required autocomplete="username"
-                        placeholder="กรอกชื่อผู้ใช้">
+                        placeholder="admin">
                 </div>
 
                 <div class="form-group">
                     <label for="password">รหัสผ่าน</label>
                     <input type="password" id="password" name="password" required autocomplete="current-password"
-                        placeholder="กรอกรหัสผ่าน">
+                        placeholder="••••••••">
                 </div>
 
                 <button type="submit" class="login-btn">เข้าสู่ระบบ</button>
             </form>
 
-            <div class="login-info">
+            <!-- <div class="login-info">
                 <strong>Demo:</strong> Username: <strong>admin</strong> / Password: <strong>admin123</strong>
-            </div>
+            </div> -->
         </div>
     </div>
 
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function (e) {
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('error-message');
+
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            errorMessage.classList.remove('show');
+            const btn = loginForm.querySelector('.login-btn');
+
+            // Set Loading State
+            btn.classList.add('btn-loading');
+            const originalText = btn.textContent;
+            btn.textContent = 'กำลังตรวจสอบ...';
 
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const errorMessage = document.getElementById('error-message');
 
-            // Simple demo authentication
-            if (username === 'admin' && password === 'admin123') {
-                // Store session
-                localStorage.setItem('isAuthenticated', 'true');
-                localStorage.setItem('username', username);
+            try {
+                // Initialize Firestore (if not already done by firebase-config.js)
+                const db = firebase.firestore();
 
-                // Redirect to main app
-                window.location.href = 'dashboard.html';
-            } else {
-                // Show error
-                errorMessage.textContent = '❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+                // Query user by username
+                const snapshot = await db.collection('users').where('username', '==', username).get();
+
+                if (snapshot.empty) {
+                    throw new Error('ไม่พบชื่อผู้ใช้นี้');
+                }
+
+                // Check password (In real production, use bcrypt/hashing!)
+                let user = null;
+                snapshot.forEach(doc => {
+                    const userData = doc.data();
+                    if (userData.password === password) {
+                        user = { id: doc.id, ...userData };
+                    }
+                });
+
+                if (user) {
+                    // Login Success
+                    localStorage.setItem('isAuthenticated', 'true');
+                    localStorage.setItem('username', user.username);
+                    localStorage.setItem('userRole', user.role); // Store role for permissions
+                    localStorage.setItem('userId', user.id);
+
+                    window.location.href = 'dashboard.html';
+                } else {
+                    throw new Error('รหัสผ่านไม่ถูกต้อง');
+                }
+
+            } catch (error) {
+                console.error("Login error:", error);
+
+                // Fallback to demo account if Firestore fails (or for initial setup)
+                if (username === 'admin' && password === 'admin123') {
+                    localStorage.setItem('isAuthenticated', 'true');
+                    localStorage.setItem('username', 'Demo Admin');
+                    localStorage.setItem('userRole', 'admin');
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+
+                errorMessage.textContent = `❌ ${error.message}`;
                 errorMessage.classList.add('show');
 
-                // Hide error after 3 seconds
+                // Reset loading state on error
+                btn.classList.remove('btn-loading');
+                btn.textContent = originalText;
+
                 setTimeout(() => {
                     errorMessage.classList.remove('show');
                 }, 3000);

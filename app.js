@@ -11,7 +11,9 @@ class DataStore {
       groomers: [],
       queue: [],
       serviceRecords: [],
+      serviceRecords: [],
       dailySchedules: [],
+      users: [],
       settings: this.getDefaultSettings()
     };
 
@@ -23,28 +25,55 @@ class DataStore {
     return {
       shopName: 'QueSanrue Grooming',
       queueNumberPrefix: 'Q',
-      serviceTypes: ['อาบน้ำ', 'ตัดขน', 'ตัดเล็บ', 'ทำสปา', 'ดูแลพิเศษ'],
+      serviceTypes: [
+        'อาบน้ำ',
+        'อาบน้ำ-ตัดขน ด้วยกรรไกร',
+        'อาบน้ำ-ตัดขน ด้วยปัตตาเลี่ยน',
+        'อาบน้ำ พร้อมทำสปา',
+        'ฝากเลี้ยง',
+        'อื่นๆ'
+      ],
       priceList: {
-        'อาบน้ำ': 200,
-        'ตัดขน': 300,
-        'ตัดเล็บ': 100,
-        'ทำสปา': 500,
-        'ดูแลพิเศษ': 400
+        'อาบน้ำ': 0,
+        'อาบน้ำ-ตัดขน ด้วยกรรไกร': 0,
+        'อาบน้ำ-ตัดขน ด้วยปัตตาเลี่ยน': 0,
+        'อาบน้ำ พร้อมทำสปา': 0,
+        'ฝากเลี้ยง': 0,
+        'อื่นๆ': 0
       },
       serviceDurations: {
         'อาบน้ำ': 60,
-        'ตัดขน': 90,
-        'ตัดเล็บ': 30,
-        'ทำสปา': 45,
-        'ดูแลพิเศษ': 60,
-        'อาบน้ำ,ตัดขน': 120,
-        'อาบน้ำ,ตัดขน,ตัดเล็บ': 150,
-        'อาบน้ำ,ทำสปา': 120,
-        'อาบน้ำ,ตัดขน,ทำสปา': 180
+        'อาบน้ำ-ตัดขน ด้วยกรรไกร': 120,
+        'อาบน้ำ-ตัดขน ด้วยปัตตาเลี่ยน': 120, // Formerly 90-120
+        'อาบน้ำ พร้อมทำสปา': 90,
+        'ฝากเลี้ยง': 0,
+        'อื่นๆ': 30
       },
       defaultWorkingHours: {
         start: '09:00',
         end: '18:00'
+      },
+      catPricing: {
+        weightTiers: [
+          { max: 2, short: 300, long: 400 },
+          { max: 3.5, short: 350, long: 450 },
+          { max: 5, short: 400, long: 500 },
+          { max: 7, short: 500, long: 600 },
+          { max: 10, short: 600, long: 700 },
+          { max: 999, short: 700, long: 800 }
+        ],
+        addons: {
+          'ตัดขน-ปัตตาเลี่ยน': 150,
+          'ตัดขน-กรรไกร': 250,
+          'ตัดเฉพาะจุด': 50,
+          'แปรงฟัน': 50,
+          'เชื้อรา': 80,
+          'ทรีตเมนต์': 50,
+          'ขจัดคราบมัน': 250, // Full body
+          'หยดเห็บหมัด': 50,
+          'สางสังกะตัง': 50, // Per spot
+          'เครื่องเป่าขน': 50
+        }
       }
     };
   }
@@ -56,11 +85,15 @@ class DataStore {
       return;
     }
 
-    const collections = ['customers', 'pets', 'groomers', 'queue', 'serviceRecords', 'dailySchedules'];
+    const collections = ['customers', 'pets', 'groomers', 'queue', 'serviceRecords', 'dailySchedules', 'users'];
 
     collections.forEach(col => {
       this.db.collection(col).onSnapshot(snapshot => {
-        this.data[col] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        this.data[col] = snapshot.docs.map(doc => {
+          const data = doc.data();
+          // Always use the real Firestore document ID
+          return { ...data, id: doc.id };
+        });
         // Trigger UI update if app is initialized
         if (window.app) {
           // We need to debounce or selectively update to avoid loops
@@ -70,6 +103,7 @@ class DataStore {
           if (window.app.currentPage === 'customers') window.app.renderCustomers();
           if (window.app.currentPage === 'pets') window.app.renderPets();
           if (window.app.currentPage === 'groomers') window.app.renderGroomers();
+          if (window.app.currentPage === 'users') window.app.renderUsers();
         }
       }, error => {
         console.error(`Error listening to ${col}:`, error);
@@ -239,6 +273,7 @@ class DataStore {
 
   // NEW: Calculate service duration based on services selected
   calculateServiceDuration(serviceTypes) {
+    console.log('[DEBUG] calculateServiceDuration called with', serviceTypes);
     if (!serviceTypes || serviceTypes.length === 0) return 60;
 
     // Safety check for serviceDurations
@@ -278,6 +313,7 @@ class DataStore {
   // Queue operations
   // Queue operations
   async addQueue(queueItem) {
+    console.log('[DEBUG] DataStore.addQueue started', queueItem);
     const selectedDate = queueItem.date || new Date().toISOString().split('T')[0];
 
     // We need to fetch current count for queue number (this might have race conditions in high concurrency but sufficient for now)
@@ -320,6 +356,7 @@ class DataStore {
 
     try {
       const docRef = await this.db.collection('queue').add(newQueue);
+      console.log('[DEBUG] DataStore.addQueue Firestore add success', docRef.id);
       return { id: docRef.id, ...newQueue };
     } catch (e) {
       console.error("Error adding queue: ", e);
@@ -479,6 +516,7 @@ class DataStore {
 
   // NEW: Find next available time slot
   findAvailableTimeSlots(date, serviceTypes, maxSlots = 10) {
+    console.log('[DEBUG] findAvailableTimeSlots called');
     const duration = this.calculateServiceDuration(serviceTypes);
     const schedule = this.getDailySchedule(date);
     const workHours = schedule?.groomers[0]?.workingHours || this.data.settings.defaultWorkingHours;
@@ -524,6 +562,30 @@ class DataStore {
     return `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
   }
 
+  // Calculate total duration for a list of services
+  calculateDuration(services) {
+    if (!services || !Array.isArray(services)) return 0;
+
+    let totalDuration = 0;
+    // Main services might be specific strings, add-ons are just additive
+    services.forEach(service => {
+      // Check exact match first
+      if (this.data.settings.serviceDurations[service]) {
+        totalDuration += this.data.settings.serviceDurations[service];
+      }
+      // Handle combined services (legacy support or if logic changes)
+      else if (service.includes(',')) {
+        // ... simplified for now, as we moved to single select + addons
+      }
+      // Fallback for unknown services
+      else {
+        totalDuration += 0;
+      }
+    });
+
+    return totalDuration;
+  }
+
   // Service Record operations
   createServiceRecord(queue) {
     // Calculate duration from check-in to completion
@@ -532,12 +594,12 @@ class DataStore {
     const duration = Math.round((endTime - checkInTime) / 60000); // minutes
 
     const serviceRecord = {
-      id: this.generateId(),
       queueId: queue.id,
       customerId: queue.customerId,
       petId: queue.petId,
       groomerId: queue.groomerId || null,
       date: queue.date,
+      status: 'completed',
       servicesPerformed: queue.serviceType,
 
       // Workflow timestamps
@@ -545,7 +607,12 @@ class DataStore {
       depositAt: queue.depositAt,
       checkInAt: queue.checkInAt,
       completedAt: queue.completedAt,
+      completedAt: queue.completedAt,
       duration,
+
+      // Appointment info
+      appointmentTime: queue.appointmentTime,
+      estimatedEndTime: queue.estimatedEndTime,
 
       // Check-in data
       checkInWeight: queue.checkInWeight,
@@ -572,6 +639,20 @@ class DataStore {
     return serviceRecord;
   }
 
+  getServiceRecords() {
+    return this.data.serviceRecords;
+  }
+
+  getServiceRecordsByCustomer(customerId) {
+    return this.data.serviceRecords
+      .filter(r => r.customerId === customerId)
+      .sort((a, b) => new Date(b.date) - new Date(a.date)); // Newest first
+  }
+
+  getServiceRecordById(id) {
+    return this.data.serviceRecords.find(r => r.id === id);
+  }
+
   // NEW: Update service record
   async updateServiceRecord(id, updates) {
     try {
@@ -579,7 +660,7 @@ class DataStore {
       return { id, ...updates };
     } catch (e) {
       console.error("Error updating service record: ", e);
-      alert('แก้ไขประวัติบริการไม่สำเร็จ');
+      alert('แก้ไขประวัติบริการไม่สำเร็จ: ' + e.message);
       return null;
     }
   }
@@ -589,6 +670,32 @@ class DataStore {
     services.forEach(service => {
       total += this.data.settings.priceList[service] || 0;
     });
+    return total;
+  }
+
+  // NEW: Calculate Cat Price based on weight and hair type
+  calculateCatPrice(services, weight, isLongHair = false) {
+    let total = 0;
+    const pricing = this.data.settings.catPricing;
+
+    // 1. Calculate Bathing Price (Base)
+    if (services.includes('อาบน้ำ')) {
+      const tier = pricing.weightTiers.find(t => weight <= t.max) || pricing.weightTiers[pricing.weightTiers.length - 1];
+      total += isLongHair ? tier.long : tier.short;
+    }
+
+    // 2. Add-ons
+    services.forEach(service => {
+      if (service === 'อาบน้ำ') return; // Handled above
+
+      // Check specific cat pricing first, then fallback to general
+      if (pricing.addons[service]) {
+        total += pricing.addons[service];
+      } else {
+        total += this.data.settings.priceList[service] || 0;
+      }
+    });
+
     return total;
   }
 
@@ -603,6 +710,50 @@ class DataStore {
   getServiceRecordsByGroomer(groomerId) {
     return this.data.serviceRecords.filter(sr => sr.groomerId === groomerId);
   }
+
+  // User operations
+  async addUser(user) {
+    const newUser = {
+      ...user,
+      createdAt: new Date().toISOString()
+    };
+    try {
+      const docRef = await this.db.collection('users').add(newUser);
+      return { id: docRef.id, ...newUser };
+    } catch (e) {
+      console.error("Error adding user: ", e);
+      alert('บันทึกข้อมูลผู้ใช้งานไม่สำเร็จ');
+      return null;
+    }
+  }
+
+  async updateUser(id, updates) {
+    try {
+      await this.db.collection('users').doc(id).update(updates);
+      return { id, ...updates };
+    } catch (e) {
+      console.error("Error updating user: ", e);
+      alert('แก้ไขข้อมูลผู้ใช้งานไม่สำเร็จ');
+      return null;
+    }
+  }
+
+  async deleteUser(id) {
+    try {
+      await this.db.collection('users').doc(id).delete();
+    } catch (e) {
+      console.error("Error deleting user: ", e);
+      alert('ลบข้อมูลผู้ใช้งานไม่สำเร็จ');
+    }
+  }
+
+  getUsers() {
+    return this.data.users;
+  }
+
+  getUserById(id) {
+    return this.data.users.find(u => u.id === id);
+  }
 }
 
 // ===================================
@@ -615,6 +766,7 @@ class PetGroomingApp {
     this.store = new DataStore();
     this.currentPage = 'dashboard';
     this.selectedDashboardDate = null; // null = today
+    this.loading = true; // NEW: Loading state
     this.init();
   }
 
@@ -623,11 +775,55 @@ class PetGroomingApp {
     this.setupNavigation();
     this.setupSearchFilters();
     this.setupPetModalListeners();
-    this.renderDashboard();
-    this.renderDashboard();
-    this.renderDashboard();
-    // Auto-load sample data if empty (with safety check inside)
+    this.setupPetModalListeners();
     this.loadSampleData();
+    this.renderDashboard(); // Trigger initial render (shows skeleton)
+
+    // Simulate loading delay for skeleton demo
+    setTimeout(() => {
+      this.loading = false;
+      this.renderDashboard(); // Trigger re-render
+    }, 1500);
+  }
+
+  // NEW: Button Loading Helper
+  setButtonLoading(btn, isLoading, loadingText = '') {
+    if (isLoading) {
+      btn.classList.add('btn-loading');
+      btn.dataset.originalText = btn.textContent;
+      if (loadingText) btn.textContent = loadingText;
+    } else {
+      btn.classList.remove('btn-loading');
+      if (btn.dataset.originalText) btn.textContent = btn.dataset.originalText;
+    }
+  }
+
+  // NEW: Render Skeleton Cards for Queue
+  renderSkeletonQueue(count = 3) {
+    return Array(count).fill(0).map(() => `
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-text" style="width: 70%;"></div>
+      </div>
+    `).join('');
+  }
+
+  // NEW: Render Skeleton Rows for Services
+  renderSkeletonService(count = 5) {
+    return this.renderSkeletonTable(10, count); // Updated to 10 columns: Date, Time, Status, Customer, Pet, Groomer, Services, Duration, Weight, Actions
+  }
+
+  // NEW: Generic Skeleton Table Router
+  renderSkeletonTable(cols = 5, rows = 5) {
+    const colHtml = '<td><div class="skeleton skeleton-text"></div></td>'.repeat(cols);
+    return Array(rows).fill(0).map(() => `
+      <tr class="skeleton-row">
+        ${colHtml}
+      </tr>
+    `).join('');
   }
 
   // Check authentication
@@ -734,23 +930,137 @@ class PetGroomingApp {
     });
   }
 
-  // Navigation
-  setupNavigation() {
-    document.querySelectorAll('.nav-link').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const page = link.dataset.page;
-        this.navigateTo(page);
+  // NEW: Add Test Data for Debugging
+  async addTestData() {
+    console.log('Adding test data...');
+    const today = this.getTodayString();
+
+    // Get existing customer or create one
+    let customers = this.store.getCustomers();
+    let customer = customers[0];
+
+    if (!customer) {
+      customer = await this.store.addCustomer({
+        name: 'ลูกค้าทดสอบ',
+        phone: '099-999-9999',
+        email: 'test@email.com',
+        address: 'ที่อยู่ทดสอบ'
       });
+    }
+
+    // Get existing pet or create one
+    let pets = this.store.getPetsByCustomer(customer.id);
+    let pet = pets[0];
+
+    if (!pet) {
+      pet = await this.store.addPet({
+        customerId: customer.id,
+        name: 'น้องทดสอบ',
+        type: 'dog',
+        breed: 'พุดเดิ้ล',
+        weight: 8,
+        color: 'ขาว',
+        notes: 'ดุมาก กลัวน้ำ'
+      });
+    }
+
+    // Get existing groomer
+    const groomers = this.store.getGroomers();
+    const groomer = groomers[0];
+
+    // 1. Add a completed history record with all fields
+    const historyRecord = {
+      id: this.store.generateId(),
+      queueId: 'test-queue-1',
+      customerId: customer.id,
+      petId: pet.id,
+      groomerId: groomer?.id || null,
+      date: today,
+      servicesPerformed: ['อาบน้ำ', 'ตัดขน'],
+
+      // Workflow timestamps
+      bookingAt: new Date().toISOString(),
+      depositAt: new Date().toISOString(),
+      checkInAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      duration: 90,
+
+      // IMPORTANT: Appointment time fields
+      appointmentTime: '10:00',
+      estimatedEndTime: '11:30',
+
+      // Check-in data
+      checkInWeight: 8.5,
+      checkInNotes: 'ดุมาก กลัวน้ำ มีแผล',
+      transport: true,
+
+      // Completion data
+      completionImages: [],
+
+      price: 850,
+      notes: 'ดุมาก กลัวน้ำ มีแผล',
+      createdAt: new Date().toISOString()
+    };
+
+    // Add to local data and Firestore
+    this.store.data.serviceRecords.push(historyRecord);
+    try {
+      await this.store.db.collection('serviceRecords').doc(historyRecord.id).set(historyRecord);
+      console.log('Test history record added:', historyRecord.id);
+    } catch (e) {
+      console.error('Error adding test history to Firestore:', e);
+    }
+
+    // 2. Add an active queue item
+    const queueItem = await this.store.addQueue({
+      customerId: customer.id,
+      petId: pet.id,
+      groomerId: groomer?.id || null,
+      assignedGroomerId: groomer?.id || null,
+      serviceType: ['อาบน้ำ'],
+      date: today,
+      bookingAt: new Date().toISOString(),
+      status: 'booking',
+      queueNumber: this.generateQueueNumber(),
+      priority: false,
+      isTransportIncluded: true,
+      marketingSource: 'ทดสอบ',
+      notes: 'คิวทดสอบ',
+      appointmentTime: '14:00',
+      estimatedEndTime: '15:00',
+      duration: 60
     });
+
+    console.log('Test queue item added:', queueItem?.id);
+
+    alert('เพิ่มข้อมูลทดสอบสำเร็จ! กรุณากลับไปดูหน้าลูกค้าและคลิกชื่อลูกค้าเพื่อดูประวัติ');
+
+    this.renderDashboard();
+    this.renderQueue();
+  }
+
+  // Navigation
+  // Navigation
+  // Old setupNavigation not needed with onclick, but keeping empty for safety
+  setupNavigation() { }
+
+  showPage(page) {
+    this.navigateTo(page);
+    // On mobile, close sidebar after click
+    if (window.innerWidth <= 768) {
+      document.getElementById('sidebar').classList.remove('active');
+    }
   }
 
   navigateTo(page) {
-    // Update active nav link
-    document.querySelectorAll('.nav-link').forEach(link => {
-      link.classList.remove('active');
-      if (link.dataset.page === page) {
-        link.classList.add('active');
+    // Update active menu item
+    document.querySelectorAll('.menu-item').forEach(item => {
+      item.classList.remove('active');
+      // We check if the onclick attribute contains the page name, or if we add a data-page attribute
+      // But since we use onclick="app.showPage('...')" we can IDmatch if we added IDs.
+      // Let's rely on the ID map I added in dashboard.html: id="nav-dashboard"
+      if (item.id === `nav-${page}`) {
+        item.classList.add('active');
       }
     });
 
@@ -784,6 +1094,9 @@ class PetGroomingApp {
           break;
         case 'services':
           this.renderServices();
+          break;
+        case 'users':
+          this.renderUsers();
           break;
       }
     }
@@ -824,6 +1137,7 @@ class PetGroomingApp {
   // ===================================
 
   renderDashboard(date = null) {
+    console.log('[DEBUG] renderDashboard called');
     // Use selected date or today
     const selectedDate = date || this.selectedDashboardDate || this.getTodayString();
     const queueForDate = this.store.getQueueByDate(selectedDate);
@@ -840,8 +1154,29 @@ class PetGroomingApp {
     // Render calendar
     this.renderCalendar();
 
+    // Sort by time, then by queue number
+    queueForDate.sort((a, b) => {
+      // Sort by time first (if both have time)
+      if (a.appointmentTime && b.appointmentTime) {
+        return a.appointmentTime.localeCompare(b.appointmentTime);
+      }
+      // Put items with time before items without time
+      if (a.appointmentTime) return -1;
+      if (b.appointmentTime) return 1;
+
+      // Fallback to queue number
+      return a.queueNumber.localeCompare(b.queueNumber);
+    });
+
     // Render queue for selected date
     const queueList = document.getElementById('dashboard-queue-list');
+
+    // NEW: Skeleton Loading
+    if (this.loading) {
+      queueList.innerHTML = this.renderSkeletonQueue(3);
+      return;
+    }
+
     if (queueForDate.length === 0) {
       queueList.innerHTML = `
         <div class="empty-state">
@@ -860,9 +1195,9 @@ class PetGroomingApp {
   // ===================================
 
   renderQueue() {
+    console.log('[DEBUG] renderQueue called');
     const searchTerm = document.getElementById('queue-search')?.value.toLowerCase() || '';
     const dateFilter = document.getElementById('queue-date-filter');
-
     // Use date from filter or default to today
     let filterDate = dateFilter?.value;
     if (!filterDate) {
@@ -882,7 +1217,28 @@ class PetGroomingApp {
       });
     }
 
+    // Sort by time, then by queue number
+    displayQueue.sort((a, b) => {
+      // Sort by time first (if both have time)
+      if (a.appointmentTime && b.appointmentTime) {
+        return a.appointmentTime.localeCompare(b.appointmentTime);
+      }
+      // Put items with time before items without time
+      if (a.appointmentTime) return -1;
+      if (b.appointmentTime) return 1;
+
+      // Fallback to queue number
+      return a.queueNumber.localeCompare(b.queueNumber);
+    });
+
     const queueList = document.getElementById('queue-list');
+
+    // NEW: Skeleton Loading
+    if (this.loading) {
+      queueList.innerHTML = this.renderSkeletonQueue(3);
+      return;
+    }
+
     if (displayQueue.length === 0) {
       queueList.innerHTML = `
         <div class="empty-state">
@@ -934,7 +1290,9 @@ class PetGroomingApp {
           <div>บริการ: ${queue.serviceType.join(', ')}${queue.duration ? ` (${queue.duration} นาที)` : ''}</div>
           ${groomer ? `<div>ช่าง: ${groomer.name}</div>` : ''}
           ${queue.checkInWeight ? `<div>น้ำหนัก: ${queue.checkInWeight} กก.</div>` : ''}
+          ${queue.isTransportIncluded ? '<div style="color: var(--primary); font-weight: 600;">🚗 บริการรับ-ส่ง</div>' : ''}
           ${queue.priority ? '<div style="color: var(--error); font-weight: 600;">⚡ คิวด่วน</div>' : ''}
+          ${queue.notes ? `<div style="color: var(--error); font-size: 0.9em;">📝 หมายเหตุ: ${queue.notes}</div>` : ''}
           <div>สถานะ: <span class="badge ${statusBadgeMap[queue.status]}">${statusMap[queue.status]}</span></div>
         </div>
         <div class="queue-actions">
@@ -982,6 +1340,14 @@ class PetGroomingApp {
     }
 
     const tbody = document.getElementById('customers-tbody');
+
+    // NEW: Skeleton Loading
+    // 5 columns: Name, Phone, Email, Pets, Actions
+    if (this.loading) {
+      tbody.innerHTML = this.renderSkeletonTable(5, 5);
+      return;
+    }
+
     if (customers.length === 0) {
       tbody.innerHTML = `
         <tr>
@@ -992,13 +1358,17 @@ class PetGroomingApp {
       `;
     } else {
       tbody.innerHTML = customers.map(c => {
-        const pets = this.store.getPetsByCustomer(c.id);
+        const petCount = this.store.getPetsByCustomer(c.id).length;
         return `
           <tr>
-            <td><strong>${c.name}</strong></td>
+            <td>
+              <a href="#" onclick="app.showCustomerHistory('${c.id}'); return false;" style="font-weight: 600; text-decoration: none; color: var(--primary-color);">
+                ${c.name}
+              </a>
+            </td>
             <td>${c.phone}</td>
             <td>${c.email || '-'}</td>
-            <td>${pets.length} ตัว</td>
+            <td>${petCount} ตัว</td>
             <td class="table-actions">
               <button class="btn btn-sm btn-info" onclick="app.editCustomer('${c.id}')">แก้ไข</button>
               <button class="btn btn-sm btn-danger" onclick="app.deleteCustomer('${c.id}')">ลบ</button>
@@ -1027,6 +1397,14 @@ class PetGroomingApp {
     }
 
     const tbody = document.getElementById('pets-tbody');
+
+    // NEW: Skeleton Loading
+    // 6 columns: Name, Type, Breed, Owner, Weight, Actions
+    if (this.loading) {
+      tbody.innerHTML = this.renderSkeletonTable(6, 5);
+      return;
+    }
+
     if (pets.length === 0) {
       tbody.innerHTML = `
         <tr>
@@ -1063,6 +1441,14 @@ class PetGroomingApp {
     const groomers = this.store.getGroomers();
 
     const tbody = document.getElementById('groomers-tbody');
+
+    // NEW: Skeleton Loading
+    // 6 columns: Name, Nickname, Phone, Position, Specialty, Actions
+    if (this.loading) {
+      tbody.innerHTML = this.renderSkeletonTable(6, 5);
+      return;
+    }
+
     if (groomers.length === 0) {
       tbody.innerHTML = `
         <tr>
@@ -1073,12 +1459,6 @@ class PetGroomingApp {
       `;
     } else {
       tbody.innerHTML = groomers.map(g => {
-        const experienceMap = {
-          'junior': 'มือใหม่',
-          'senior': 'มีประสบการณ์',
-          'expert': 'ผู้เชี่ยวชาญ'
-        };
-
         const specialtyText = g.specialty.map(s => {
           if (s === 'dog') return 'สุนัข';
           if (s === 'cat') return 'แมว';
@@ -1088,10 +1468,13 @@ class PetGroomingApp {
 
         return `
           <tr>
-            <td><strong>${g.name}</strong></td>
+            <td>
+              <strong>${g.name}</strong>
+              ${g.nickname ? `<br><small class="text-muted">(${g.nickname})</small>` : ''}
+            </td>
             <td>${g.phone}</td>
+            <td>${g.experienceLevel}</td>
             <td>${specialtyText}</td>
-            <td>${experienceMap[g.experienceLevel] || g.experienceLevel}</td>
             <td>
               <span class="badge ${g.isActive ? 'badge-completed' : 'badge-cancelled'}">
                 ${g.isActive ? 'ทำงานอยู่' : 'ไม่ทำงาน'}
@@ -1113,54 +1496,414 @@ class PetGroomingApp {
 
   renderServices() {
     const searchTerm = document.getElementById('service-search')?.value.toLowerCase() || '';
-    let services = this.store.getServiceRecords();
 
+    // Initialize Sort State if missing
+    if (!this.currentSort) {
+      this.currentSort = { column: 'dateTime', direction: 'desc' };
+    }
+
+    // Show ONLY Service Records (History) - NOT Queue
+    let allRecords = [];
+
+    // 1. Process Queue Items - DISABLED per user request
+    // this.store.getQueue().forEach(q => {
+    //   ...Queue processing removed...
+    // });
+
+
+    // 2. Process Service Records
+    this.store.getServiceRecords().forEach(s => {
+      // Determine time range
+      let timeRange = '-';
+      if (s.checkInAt && s.completedAt) {
+        const checkIn = new Date(s.checkInAt);
+        const completed = new Date(s.completedAt);
+        if (!isNaN(checkIn) && !isNaN(completed)) {
+          const formatTime = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+          timeRange = `${formatTime(checkIn)} - ${formatTime(completed)}`;
+        }
+      }
+      // Fallback
+      if (timeRange === '-' && s.appointmentTime) {
+        timeRange = s.appointmentTime;
+        if (s.estimatedEndTime) timeRange += ` - ${s.estimatedEndTime}`;
+      }
+
+      const customer = this.store.getCustomerById(s.customerId);
+      const pet = this.store.getPetById(s.petId);
+      const groomer = s.groomerId ? this.store.getGroomerById(s.groomerId) : null;
+      let serviceStr = Array.isArray(s.servicesPerformed) ? s.servicesPerformed.join(' ') : s.servicesPerformed;
+
+      allRecords.push({
+        type: 'history',
+        date: s.date,
+        time: timeRange,
+        appointmentTime: s.appointmentTime,
+        dateTime: new Date(`${s.date}T${s.appointmentTime || '00:00'}`),
+        status: 'completed',
+        customerId: s.customerId,
+        petId: s.petId,
+        groomerId: s.groomerId,
+        services: s.servicesPerformed || [],
+        duration: s.duration,
+        checkInAt: s.checkInAt,
+        completedAt: s.completedAt,
+        checkInWeight: s.checkInWeight,
+        id: s.id,
+        // Resolved names
+        customerName: customer ? customer.name.toLowerCase() : '',
+        petName: pet ? pet.name.toLowerCase() : '',
+        groomerName: groomer ? groomer.name.toLowerCase() : '',
+        serviceStr: serviceStr || ''
+      });
+    });
+
+    // 3. Filter
     if (searchTerm) {
-      services = services.filter(s => {
-        const customer = this.store.getCustomerById(s.customerId);
-        const pet = this.store.getPetById(s.petId);
-        const groomer = s.groomerId ? this.store.getGroomerById(s.groomerId) : null;
-        return customer?.name.toLowerCase().includes(searchTerm) ||
-          pet?.name.toLowerCase().includes(searchTerm) ||
-          groomer?.name.toLowerCase().includes(searchTerm);
+      allRecords = allRecords.filter(r => {
+        return r.customerName.includes(searchTerm) ||
+          r.petName.includes(searchTerm) ||
+          r.groomerName.includes(searchTerm);
       });
     }
 
+    // 4. Sort
+    const { column, direction } = this.currentSort;
+    allRecords.sort((a, b) => {
+      let valA = a[column];
+      let valB = b[column];
+
+      // Handle specific columns if needed
+      if (column === 'date') valA = a.dateTime; // Sort by dateTime object for date column
+      if (column === 'date') valB = b.dateTime;
+
+      if (valA < valB) return direction === 'asc' ? -1 : 1;
+      if (valA > valB) return direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
     const tbody = document.getElementById('services-tbody');
-    if (services.length === 0) {
+
+    // Skeleton Loading - REMOVED: Data is already loaded from Firebase
+    // if (this.loading) {
+    //   tbody.innerHTML = this.renderSkeletonService(5);
+    //   return;
+    // }
+
+
+    if (allRecords.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-gray);">
+          <td colspan="10" style="text-align: center; padding: 2rem; color: var(--text-gray);">
             ไม่พบบันทึกบริการ
           </td>
         </tr>
       `;
     } else {
-      tbody.innerHTML = services.map(s => {
-        const customer = this.store.getCustomerById(s.customerId);
-        const pet = this.store.getPetById(s.petId);
-        const groomer = s.groomerId ? this.store.getGroomerById(s.groomerId) : null;
+      tbody.innerHTML = allRecords.map(r => {
+        const customer = this.store.getCustomerById(r.customerId);
+        const pet = this.store.getPetById(r.petId);
+        const groomer = r.groomerId ? this.store.getGroomerById(r.groomerId) : null;
+
+        // Status Badge
+        const statusMap = {
+          'booking': '📝 จองคิว',
+          'deposit': '💰 มัดจำ',
+          'check-in': '🔍 เช็คอิน',
+          'completed': '✅ เสร็จสิ้น',
+          'cancelled': '❌ ยกเลิก'
+        };
+        const statusBadgeMap = {
+          'booking': 'badge-booking',
+          'deposit': 'badge-deposit',
+          'check-in': 'badge-checkin',
+          'completed': 'badge-completed',
+          'cancelled': 'badge-cancelled'
+        };
+        let statusBadge = statusMap[r.status] ?
+          `<span class="badge ${statusBadgeMap[r.status]}">${statusMap[r.status]}</span>` :
+          `<span class="badge">${r.status}</span>`;
+
+        // Services
+        let serviceList = Array.isArray(r.services) ? r.services.join(', ') : r.services;
+        if (!serviceList && r.serviceType) serviceList = Array.isArray(r.serviceType) ? r.serviceType.join(', ') : r.serviceType;
+
+        // Weight
+        let weightDisplay = r.checkInWeight ? `${r.checkInWeight} กก.` : '-';
 
         return `
-          <tr>
-            <td>${s.date}</td>
+          <tr onclick="app.showServiceDetails('${r.id}')">
+            <td>${r.date}</td>
+            <td style="font-weight:600; color:var(--secondary-color);">${r.time}</td>
+            <td>${statusBadge}</td>
             <td>${customer?.name || 'ไม่ระบุ'}</td>
             <td>${pet?.name || 'ไม่ระบุ'}</td>
             <td>${groomer?.name || '-'}</td>
-            <td>${s.servicesPerformed.join(', ')}</td>
-            <td>${s.duration} นาที</td>
-            <td><strong>${s.price} บาท</strong></td>
+            <td>${serviceList || '-'}</td>
+            <td>${r.duration || '-'} นาที</td>
+            <td><strong>${weightDisplay}</strong></td>
             <td>
-              <button class="btn btn-sm btn-info" onclick="app.showEditServiceModal('${s.id}')">✏️ แก้ไข</button>
+               ${r.type === 'history' ?
+            `<button class="btn btn-sm btn-info" onclick="event.stopPropagation(); app.showEditServiceModal('${r.id}')">✏️ แก้ไข</button>` :
+            `<span class="text-muted" style="font-size:0.8rem">จัดการที่หน้าคิว</span>`
+          }
             </td>
           </tr>
         `;
       }).join('');
     }
+
+    // Update Sort Icons
+    this.updateSortIcons();
+  }
+
+  showServiceDetails(recordId) {
+    const record = this.store.getServiceRecordById(recordId) || this.store.data.queue.find(q => q.id === recordId);
+    if (!record) return;
+
+    const customer = this.store.getCustomerById(record.customerId);
+    const pet = this.store.getPetById(record.petId);
+    const groomer = record.groomerId ? this.store.getGroomerById(record.groomerId) :
+      (record.assignedGroomerId ? this.store.getGroomerById(record.assignedGroomerId) : null);
+
+    const content = document.getElementById('service-details-content');
+
+    // Format Display Values
+    let serviceList = Array.isArray(record.servicesPerformed) ? record.servicesPerformed.join(', ') : record.servicesPerformed;
+    if (!serviceList && record.serviceType) serviceList = Array.isArray(record.serviceType) ? record.serviceType.join(', ') : record.serviceType;
+    if (!serviceList && record.services) serviceList = Array.isArray(record.services) ? record.services.join(', ') : record.services;
+
+    const statusMap = {
+      'booking': '📝 จองคิว',
+      'deposit': '💰 มัดจำ',
+      'check-in': '🔍 เช็คอิน',
+      'completed': '✅ เสร็จสิ้น',
+      'cancelled': '❌ ยกเลิก'
+    };
+
+    const currentStatus = record.status || (this.store.getServiceRecordById(recordId) ? 'completed' : 'unknown');
+
+    content.innerHTML = `
+      <div class="detail-item">
+        <div class="detail-label">วันที่บริการ</div>
+        <div class="detail-value">${record.date}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">เวลาทำงาน</div>
+        <div class="detail-value">${record.appointmentTime || record.time || '-'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">ลูกค้า</div>
+        <div class="detail-value">${customer?.name || 'ไม่ระบุ'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">สัตว์เลี้ยง</div>
+        <div class="detail-value">${pet?.name || 'ไม่ระบุ'} (${pet?.breed || '-'})</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">ช่างผู้ดูแล</div>
+        <div class="detail-value">${groomer?.name || '-'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">สถานะ</div>
+        <div class="detail-value">${statusMap[currentStatus] || currentStatus}</div>
+      </div>
+      <div class="detail-item" style="grid-column: span 2;">
+        <div class="detail-label">บริการที่ได้รับ</div>
+        <div class="detail-value">${serviceList || '-'}</div>
+      </div>
+      <div class="detail-item" style="grid-column: span 2;">
+        <div class="detail-label">หมายเหตุ</div>
+        <div class="detail-value">${record.notes || record.completionNotes || '-'}</div>
+      </div>
+    `;
+
+    // Handle Images
+    const imageContainer = document.getElementById('service-details-images');
+    const imageSection = document.getElementById('service-details-images-section');
+    const images = record.completionImages || [];
+
+    if (images.length > 0) {
+      imageSection.style.display = 'block';
+      imageContainer.innerHTML = images.map(img => `
+        <div class="preview-image-container">
+          <img src="${img.base64}" class="preview-image" onclick="window.open('${img.base64}', '_blank')">
+        </div>
+      `).join('');
+    } else {
+      imageSection.style.display = 'none';
+    }
+
+    this.openModal('modal-service-details');
+  }
+
+  sortServices(column) {
+    if (!this.currentSort) this.currentSort = { column: 'dateTime', direction: 'desc' };
+
+    if (this.currentSort.column === column) {
+      this.currentSort.direction = this.currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.currentSort.column = column;
+      this.currentSort.direction = 'asc';
+    }
+    this.renderServices();
+  }
+
+  updateSortIcons() {
+    // Clear all icons (if we had specific class for icons)
+    document.querySelectorAll('.sort-icon').forEach(icon => icon.textContent = '⇅');
+
+    // Set active icon
+    const { column, direction } = this.currentSort;
+    const iconId = `sort-icon-${column}`;
+    const iconEl = document.getElementById(iconId);
+    if (iconEl) {
+      iconEl.textContent = direction === 'asc' ? '⬆️' : '⬇️';
+      // Highlight header?
+    }
   }
 
   // ===================================
-  // MODAL OPERATIONS
+  // USER RENDERING & LOGIC
+  // ===================================
+
+  renderUsers() {
+    const searchTerm = document.getElementById('user-search')?.value.toLowerCase() || '';
+    let users = this.store.getUsers();
+
+    if (searchTerm) {
+      users = users.filter(u =>
+        u.username.toLowerCase().includes(searchTerm) ||
+        u.realname.toLowerCase().includes(searchTerm) ||
+        (u.phone && u.phone.includes(searchTerm))
+      );
+    }
+
+    const tbody = document.getElementById('users-tbody');
+
+    // NEW: Skeleton Loading
+    if (this.loading) {
+      tbody.innerHTML = this.renderSkeletonTable(5, 5);
+      return;
+    }
+
+    if (users.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-gray);">
+            ไม่พบข้อมูลผู้ใช้งาน
+          </td>
+        </tr>
+      `;
+    } else {
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td><strong>${u.username}</strong></td>
+          <td>${u.realname}</td>
+          <td>
+            <span class="badge ${u.role === 'admin' ? 'badge-cancelled' : 'badge-checkin'}">
+              ${u.role === 'admin' ? 'Admin' : 'Staff'}
+            </span>
+          </td>
+          <td>${u.phone || '-'}</td>
+          <td class="table-actions">
+            <button class="btn btn-sm btn-info" onclick="app.editUser('${u.id}')">แก้ไข</button>
+            <button class="btn btn-sm btn-danger" onclick="app.deleteUser('${u.id}')">ลบ</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+  }
+
+  showAddUserModal() {
+    document.getElementById('user-id').value = '';
+    document.getElementById('modal-user-title').textContent = 'เพิ่มผู้ใช้งาน';
+    document.getElementById('form-user').reset();
+    document.getElementById('user-password').required = true; // Password required for new user
+    document.getElementById('user-password').placeholder = 'กรอกรหัสผ่าน';
+    this.openModal('modal-user');
+  }
+
+  editUser(id) {
+    const user = this.store.getUserById(id);
+    if (!user) return;
+
+    document.getElementById('user-id').value = user.id;
+    document.getElementById('user-username').value = user.username;
+    document.getElementById('user-realname').value = user.realname;
+    document.getElementById('user-role').value = user.role;
+    document.getElementById('user-phone').value = user.phone || '';
+
+    // Clear password field for edit
+    const passInput = document.getElementById('user-password');
+    passInput.value = '';
+    passInput.required = false; // Optional for edit
+    passInput.placeholder = 'ว่างไว้หากไม่ต้องการเปลี่ยน';
+
+    document.getElementById('modal-user-title').textContent = 'แก้ไขผู้ใช้งาน';
+    this.openModal('modal-user');
+  }
+
+  async saveUser() {
+    const id = document.getElementById('user-id').value;
+    const password = document.getElementById('user-password').value;
+
+    const userData = {
+      username: document.getElementById('user-username').value,
+      realname: document.getElementById('user-realname').value,
+      role: document.getElementById('user-role').value,
+      phone: document.getElementById('user-phone').value
+    };
+
+    if (!userData.username || !userData.realname) {
+      alert('กรุณากรอกข้อมูลที่จำเป็น (*)');
+      return;
+    }
+
+    // Handle Password
+    if (id) {
+      // Edit mode: Update password only if provided
+      if (password) {
+        userData.password = password; // In real app, hash this!
+      }
+
+      const btn = document.querySelector('#modal-user .btn-primary');
+      this.setButtonLoading(btn, true);
+
+      try {
+        await this.store.updateUser(id, userData);
+      } finally {
+        this.setButtonLoading(btn, false);
+      }
+    } else {
+      // Add mode: Password is required
+      if (!password) {
+        alert('กรุณากรอกรหัสผ่าน');
+        return;
+      }
+      userData.password = password; // In real app, hash this!
+
+      const btn = document.querySelector('#modal-user .btn-primary');
+      this.setButtonLoading(btn, true);
+
+      try {
+        await this.store.addUser(userData);
+      } finally {
+        this.setButtonLoading(btn, false);
+      }
+    }
+
+    this.closeModal('modal-user');
+    this.renderUsers();
+  }
+
+  async deleteUser(id) {
+    if (confirm('คุณแน่ใจหรือไม่ที่จะลบผู้ใช้งานนี้?')) {
+      await this.store.deleteUser(id);
+      this.renderUsers();
+    }
+  }
+
   // ===================================
 
   showAddCustomerModal() {
@@ -1185,12 +1928,15 @@ class PetGroomingApp {
     this.openModal('modal-groomer');
   }
 
+
+
   showAddQueueModal() {
     document.getElementById('form-queue').reset();
     this.populateCustomerDropdown('queue-customer');
     this.populateGroomerDropdown();
 
     // NEW: Initialize smart scheduling
+    console.log('[DEBUG] initializeQueueModal called');
     this.initializeQueueModal();
 
     // Setup customer search
@@ -1364,6 +2110,198 @@ class PetGroomingApp {
     // No need to call render manually as listener will handle it, but for safety/instant feedback:
     this.renderCustomers();
     this.renderDashboard();
+  }
+
+  showCustomerHistory(customerId) {
+    // 1. Get History
+    const history = this.store.getServiceRecordsByCustomer(customerId).map(s => {
+      // Try to find original queue item (for immediate updates)
+      const originalQueue = this.store.data.queue.find(q => q.id === s.queueId);
+
+      // Determine time range
+      let timeRange = s.time || '-'; // default fallback
+
+      // Strategy 1: Use Appointment Time (from original queue or saved record)
+      const appTime = originalQueue?.appointmentTime || s.appointmentTime;
+      const appEndTime = originalQueue?.estimatedEndTime || s.estimatedEndTime;
+
+      if (appTime) {
+        timeRange = appEndTime ? `${appTime} - ${appEndTime}` : appTime;
+      }
+      // Strategy 2: Use Check-in/Completed time if appointment time missing
+      else if (s.checkInAt && s.completedAt) {
+        const checkIn = new Date(s.checkInAt);
+        const completed = new Date(s.completedAt);
+        const formatTime = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        timeRange = `${formatTime(checkIn)} - ${formatTime(completed)}`;
+      }
+
+      return {
+        type: 'history',
+        date: s.date,
+        time: timeRange,
+        dateTime: new Date(`${s.date}T${(appTime || (s.time ? s.time.split(' - ')[0] : '00:00'))}`),
+        service: s.servicesPerformed.join(', '),
+        duration: s.duration,
+        transport: s.transport || false,
+        groomerId: s.groomerId,
+        status: 'completed',
+        notes: s.notes || '-',
+        petId: s.petId,
+        weight: s.weight // If available in history
+      };
+    });
+
+    // 2. Get Active Queue (Filter out completed to avoid duplicates)
+    const queue = this.store.data.queue
+      .filter(q => q.customerId === customerId && q.status !== 'completed')
+      .map(q => {
+        // Calculate time range if available
+        let timeRange = q.appointmentTime || '-';
+        if (q.appointmentTime && q.estimatedEndTime) {
+          timeRange = `${q.appointmentTime} - ${q.estimatedEndTime}`;
+        }
+
+        return {
+          type: 'queue',
+          date: q.date,
+          time: timeRange,
+          // FIX: Map properties for createHistoryRow
+          appointmentTime: timeRange, // Used by createHistoryRow
+          servicesPerformed: Array.isArray(q.serviceType) ? q.serviceType : [q.serviceType], // Used by createHistoryRow
+
+          dateTime: new Date(`${q.date}T${q.appointmentTime || '00:00'}`),
+          service: Array.isArray(q.serviceType) ? q.serviceType.join(', ') : q.serviceType,
+          duration: q.duration,
+          transport: q.isTransportIncluded,
+          groomerId: q.assignedGroomerId || q.groomerId,
+          status: q.status,
+          notes: q.notes || '-',
+          petId: q.petId,
+          weight: q.checkInWeight // Map checkInWeight
+        };
+      });
+
+    // 3. Combine and Sort (Newest First)
+    const allRecords = [...queue, ...history].sort((a, b) => b.dateTime - a.dateTime);
+
+    const tbody = document.getElementById('history-tbody');
+
+    if (allRecords.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center;">ไม่พบประวัติการใช้บริการ</td></tr>`;
+    } else {
+      tbody.innerHTML = allRecords.map(r => this.createHistoryRow(r)).join('');
+    }
+
+    this.openModal('modal-customer-history');
+  }
+
+  createHistoryRow(record) {
+    const pet = this.store.getPetById(record.petId);
+    const groomer = record.groomerId ? this.store.getGroomerById(record.groomerId) : null;
+
+    // Status Badge
+    let statusBadge = '';
+    if (record.status === 'waiting') statusBadge = '<span class="badge badge-waiting">รอคิว</span>';
+    else if (record.status === 'in_progress') statusBadge = '<span class="badge badge-inprogress">กำลังทำ</span>';
+    else if (record.status === 'completed') statusBadge = '<span class="badge badge-completed">เสร็จสิ้น</span>';
+    else if (record.status === 'cancelled') statusBadge = '<span class="badge badge-cancelled">ยกเลิก</span>';
+    else statusBadge = `<span class="badge">${record.status}</span>`;
+
+    // Time Formatting
+    let timeDisplay = record.time;
+    if (record.type === 'history' && !record.time) {
+      timeDisplay = '-';
+    }
+
+    // Transport Badge
+    const transportBadge = record.transport ? '<div style="margin-top:4px; font-size:0.8rem;">🚗 บริการรับ-ส่ง</div>' : '';
+
+    // Duration Display
+    const durationDisplay = record.duration ? ` (${record.duration} นาที)` : '';
+
+    // Weight Display (Prefer check-in weight, then pet weight)
+    const weightVal = record.weight || pet?.weight;
+    const weightDisplay = weightVal ? `<div style="font-size:0.8rem; color:#666;">น้ำหนัก: ${weightVal} กก.</div>` : '';
+
+    return `
+      <tr>
+        <td>
+            <div>${record.date}</div>
+            <div style="font-size: 0.8rem; margin-top: 4px;">${statusBadge}</div>
+        </td>
+        <td>${timeDisplay}</td>
+        <td>
+            <div>${pet?.name || '-'} ${pet?.type ? `<span class="badge badge-${pet.type}">${pet.type === 'dog' ? 'สุนัข' : 'แมว'}</span>` : ''}</div>
+            ${weightDisplay}
+        </td>
+        <td>
+            <div>${record.service}${durationDisplay}</div>
+            ${transportBadge}
+        </td>
+        <td>${groomer?.name || '-'}</td>
+        <td class="text-danger">${record.notes}</td>
+      </tr>
+    `;
+  }
+
+  createHistoryRow(record) {
+    const pet = this.store.getPetById(record.petId);
+    const groomer = record.groomerId ? this.store.getGroomerById(record.groomerId) : null;
+
+    // Format date and time
+    const dateObj = new Date(record.date);
+    const dateStr = `${dateObj.getDate()} ${this.getMonthName(dateObj.getMonth())} ${dateObj.getFullYear() + 543}`; // DD MMM YYYY (Thai)
+
+    let timeRange = '-';
+    if (record.checkInAt && record.completedAt) {
+      const checkIn = new Date(record.checkInAt);
+      const completed = new Date(record.completedAt);
+      const formatTime = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      timeRange = `${formatTime(checkIn)} - ${formatTime(completed)}`;
+    } else if (record.appointmentTime) {
+      timeRange = record.appointmentTime;
+    }
+
+    // Service list
+    let serviceText = '-';
+    if (Array.isArray(record.servicesPerformed)) {
+      serviceText = record.servicesPerformed.join(', ');
+    } else if (record.servicesPerformed) {
+      serviceText = record.servicesPerformed;
+    }
+
+    const durationText = record.duration ? `(${record.duration} นาที)` : '';
+
+    return `
+      <tr>
+        <td>${dateStr}</td>
+        <td>${timeRange}</td>
+        <td>
+          ${pet?.name || 'ไม่ระบุ'} 
+          <span class="badge ${pet?.type === 'dog' ? 'badge-dog' : 'badge-cat'}" style="font-size: 0.7em;">${pet?.type === 'dog' ? 'สุนัข' : 'แมว'}</span>
+        </td>
+        <td>${serviceText} ${durationText} ${record.checkInWeight ? `<br><small class="text-muted">น้ำหนัก: ${record.checkInWeight} กก.</small>` : ''}</td>
+        <td>${groomer ? groomer.name : '-'}</td>
+        <td style="max-width: 200px;">
+          ${record.notes ? `<span style="color: var(--error);">${record.notes}</span>` : '-'}
+        </td>
+      </tr>
+    `;
+  }
+
+  getMonthName(monthIndex) {
+    const months = [
+      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+    ];
+    return months[monthIndex];
+  }
+
+
+  showCustomerPets(customerId) {
+    // Legacy support or alternative view if needed
+    this.showCustomerHistory(customerId);
   }
 
   editCustomer(id) {
@@ -1580,10 +2518,11 @@ class PetGroomingApp {
 
     const groomerData = {
       name: document.getElementById('groomer-name').value,
+      nickname: document.getElementById('groomer-nickname').value,
       phone: document.getElementById('groomer-phone').value,
       email: document.getElementById('groomer-email').value,
       specialty: selectedSpecialties.length > 0 ? selectedSpecialties : ['both'],
-      experienceLevel: document.getElementById('groomer-experience').value,
+      experienceLevel: document.getElementById('groomer-level').value,
       isActive: document.getElementById('groomer-active').value === 'true',
       hireDate: document.getElementById('groomer-hiredate').value,
       notes: document.getElementById('groomer-notes').value
@@ -1610,6 +2549,7 @@ class PetGroomingApp {
 
     document.getElementById('groomer-id').value = groomer.id;
     document.getElementById('groomer-name').value = groomer.name;
+    document.getElementById('groomer-nickname').value = groomer.nickname || '';
     document.getElementById('groomer-phone').value = groomer.phone;
     document.getElementById('groomer-email').value = groomer.email || '';
 
@@ -1619,7 +2559,7 @@ class PetGroomingApp {
       option.selected = groomer.specialty.includes(option.value);
     });
 
-    document.getElementById('groomer-experience').value = groomer.experienceLevel;
+    document.getElementById('groomer-level').value = groomer.experienceLevel;
     document.getElementById('groomer-active').value = groomer.isActive.toString();
     document.getElementById('groomer-hiredate').value = groomer.hireDate || '';
     document.getElementById('groomer-notes').value = groomer.notes || '';
@@ -1640,73 +2580,198 @@ class PetGroomingApp {
   // ===================================
 
   async saveQueue() {
+    console.log('[DEBUG] saveQueue started');
     const customerId = document.getElementById('queue-customer').value;
     const petId = document.getElementById('queue-pet').value;
     const groomerId = document.getElementById('queue-groomer').value;
 
     const serviceCheckboxes = document.querySelectorAll('input[name="service-type"]:checked');
-    const serviceTypes = Array.from(serviceCheckboxes).map(cb => cb.value);
+    const addonCheckboxes = document.querySelectorAll('input[name="service-addon"]:checked');
 
-    // NEW: Get date and time selection
+    let serviceTypes = Array.from(serviceCheckboxes).map(cb => cb.value);
+    const addons = Array.from(addonCheckboxes).map(cb => cb.value);
+
+    // Combine for storage
+    serviceTypes = [...serviceTypes, ...addons];
+
+    // Get date and time selection
     const selectedDate = document.getElementById('queue-date').value;
     const selectedTimeSlot = document.getElementById('queue-time-slot').value;
 
-    // Use manually selected groomer if any
-    let assignedGroomerId = groomerId || null;
+    const priority = document.getElementById('queue-priority').checked;
+    const transportIncluded = document.getElementById('queue-transport').checked;
+    const marketingSource = document.getElementById('queue-source').value;
+    const notes = document.getElementById('queue-notes').value;
+    console.log('[DEBUG] saveQueue collected form data');
 
-    const queueData = {
-      customerId,
-      petId,
-      date: selectedDate,
-      appointmentTime: selectedTimeSlot,
-      assignedGroomerId,
-      serviceType: serviceTypes,
-      priority: document.getElementById('queue-priority').checked,
-      notes: document.getElementById('queue-notes').value
-    };
+    try {
+      if (!customerId || !petId || serviceTypes.length === 0) {
+        alert('กรุณากรอกข้อมูลที่จำเป็น');
+        return;
+      }
 
-    if (!customerId || !petId || serviceTypes.length === 0) {
-      alert('กรุณากรอกข้อมูลที่จำเป็น');
-      return;
+      if (!selectedDate) {
+        alert('กรุณาเลือกวันที่นัดหมาย');
+        return;
+      }
+
+      // Calculate duration and end time
+      let duration = 60;
+      try {
+        duration = this.store.calculateServiceDuration(serviceTypes);
+      } catch (e) {
+        console.error('Error calculating duration:', e);
+        duration = 60; // Fallback
+      }
+      console.log('[DEBUG] saveQueue duration calculated:', duration);
+
+      let endTime = null;
+      if (selectedTimeSlot) {
+        endTime = this.calculateEndTime(selectedTimeSlot, duration);
+      }
+
+      // Use manually selected groomer if any
+      let assignedGroomerId = groomerId || null;
+
+      // Construct queue data - REMOVED generateQueueNumber to let DataStore handle it
+      const queueData = {
+        customerId,
+        petId,
+        groomerId: assignedGroomerId,
+        assignedGroomerId: assignedGroomerId,
+        serviceType: serviceTypes,
+        date: selectedDate,
+        bookingAt: new Date().toISOString(),
+        status: 'booking',
+        priority: !!priority, // Ensure boolean
+        isTransportIncluded: !!transportIncluded, // Ensure boolean
+        marketingSource: marketingSource || '',
+        notes: notes || '',
+        appointmentTime: selectedTimeSlot,
+        estimatedEndTime: endTime,
+        duration: duration
+      };
+
+      console.log('Sending to DataStore:', queueData);
+      console.log('[DEBUG] saveQueue calling store.addQueue');
+      // alert('กำลังบันทึกข้อมูล... (Step 1)'); // Debug alert
+
+      const queue = await this.store.addQueue(queueData);
+      console.log('[DEBUG] saveQueue store.addQueue returned', queue);
+
+      console.log('DataStore returned:', queue);
+      // alert('บันทึกข้อมูลเรียบร้อย (Step 2)'); // Debug alert
+      if (!queue) return;
+
+      /*
+      // --- Google Calendar Integration ---
+      try {
+        const customer = this.store.getCustomerById(customerId);
+        const pet = this.store.getPetById(petId);
+        const groomer = assignedGroomerId ? this.store.getGroomerById(assignedGroomerId) : null;
+
+        const calendarPayload = {
+          id: queue.id,
+          ...queueData,
+          customerName: customer ? customer.name : '-',
+          customerPhone: customer ? customer.phone : '-',
+          petName: pet ? pet.name : '-',
+          petType: pet ? pet.type : '-',
+          petBreed: pet ? pet.breed : '-',
+          services: serviceTypes,
+          groomerName: groomer ? groomer.name : 'Admin',
+          checkInWeight: pet ? (pet.weight || '-') : '-',
+          checkInNotes: pet ? (pet.notes || '-') : '-'
+        };
+
+        // Call Backend API
+        fetch('/api/calendar/create-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(calendarPayload)
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) console.log('✅ Google Calendar Event Created:', data.link);
+            else console.error('❌ Failed to create calendar event:', data.error);
+          })
+          .catch(err => console.error('❌ Calendar API Error:', err));
+
+      } catch (calError) {
+        console.error('Error preparing calendar data:', calError);
+      }
+      // -----------------------------------
+      */
+
+      // Calculate duration display
+      const hours = Math.floor(duration / 60);
+      const mins = duration % 60;
+      const durationText = hours > 0
+        ? (mins > 0 ? `${hours}:${String(mins).padStart(2, '0')} ชม.` : `${hours} ชม.`)
+        : `${mins} นาที`;
+
+      // Show confirmation with appointment details
+      const groomer = assignedGroomerId ? this.store.getGroomerById(assignedGroomerId) : null;
+      const servicesText = serviceTypes.join(', ');
+
+      let confirmMsg = `เพิ่มคิว #${queue.queueNumber} สำเร็จ!\n`;
+      confirmMsg += `วันที่: ${this.formatDate(selectedDate)}\n`;
+
+      if (selectedTimeSlot && queue.estimatedEndTime) {
+        confirmMsg += `${servicesText} (${durationText})\n`;
+        confirmMsg += `เวลา: ${selectedTimeSlot} - ${queue.estimatedEndTime}\n`;
+      } else {
+        confirmMsg += `บริการ: ${servicesText}\n`;
+      }
+
+      if (transportIncluded) confirmMsg += `+ บริการรับ-ส่ง 🚗\n`;
+      if (groomer) confirmMsg += `ช่าง: ${groomer.name}`;
+
+      alert(confirmMsg);
+
+      this.closeModal('modal-queue');
+      console.log('[DEBUG] saveQueue closing modal');
+      this.renderQueue();
+      console.log('[DEBUG] saveQueue rendered queue');
+      this.renderDashboard();
+      console.log('[DEBUG] saveQueue rendered dashboard');
+      console.log('[DEBUG] saveQueue finished');
+    } catch (err) {
+      console.error('Error saving queue:', err);
+      alert('เกิดข้อผิดพลาดในการบันทึกคิว: ' + err.message);
     }
+  }
 
-    if (!selectedDate) {
-      alert('กรุณาเลือกวันที่นัดหมาย');
-      return;
-    }
+  // Calculate end time string from start time and duration
+  calculateEndTime(startTime, durationMinutes) {
+    if (!startTime || !durationMinutes) return null;
 
-    const queue = await this.store.addQueue(queueData);
-    if (!queue) return;
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const totalStartMins = startHour * 60 + startMin;
+    const totalEndMins = totalStartMins + durationMinutes;
 
-    // Calculate duration display
-    const duration = queue.duration;
-    const hours = Math.floor(duration / 60);
-    const mins = duration % 60;
-    const durationText = hours > 0
-      ? (mins > 0 ? `${hours}:${String(mins).padStart(2, '0')} ชม.` : `${hours} ชม.`)
-      : `${mins} นาที`;
+    const endHour = Math.floor(totalEndMins / 60);
+    const endMin = totalEndMins % 60;
 
-    // Show confirmation with appointment details
-    const groomer = assignedGroomerId ? this.store.getGroomerById(assignedGroomerId) : null;
-    const servicesText = serviceTypes.join(', ');
+    return `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
+  }
 
-    let confirmMsg = `เพิ่มคิว #${queue.queueNumber} สำเร็จ!\n`;
-    confirmMsg += `วันที่: ${this.formatDate(selectedDate)}\n`;
-    if (selectedTimeSlot && queue.estimatedEndTime) {
-      confirmMsg += `${servicesText} ${durationText}\n`;
-      confirmMsg += `คิว ${selectedTimeSlot}-${queue.estimatedEndTime}\n`;
-    } else {
-      confirmMsg += `บริการ: ${servicesText}\n`;
-    }
-    if (groomer) {
-      confirmMsg += `ช่าง: ${groomer.name}`;
-    }
+  // Generate a queue number based on date and count
+  generateQueueNumber() {
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
 
-    alert(confirmMsg);
+    // transform to YYMMDD
+    const yy = String(today.getFullYear()).slice(-2);
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const prefix = `${yy}${mm}${dd}`; // e.g., 231025
 
-    this.closeModal('modal-queue');
-    this.renderQueue();
-    this.renderDashboard();
+    // Get today's queues to find the next number
+    const todaysQueues = this.store.getQueue().filter(q => q.date === dateStr);
+    const count = todaysQueues.length + 1;
+
+    return `Q${prefix}-${String(count).padStart(3, '0')}`;
   }
 
   // ===================================
@@ -2034,24 +3099,36 @@ class PetGroomingApp {
   }
 
   async saveDeposit() {
-    const amount = parseFloat(document.getElementById('deposit-amount').value);
+    let amount = parseFloat(document.getElementById('deposit-amount').value);
     const method = document.getElementById('deposit-method').value;
 
-    if (!amount || amount <= 0) {
-      alert('กรุณากรอกยอดมัดจำ');
-      return;
+    if (isNaN(amount) || amount < 0) {
+      amount = 0;
     }
 
     await this.store.updateQueue(this.currentQueueId, {
       status: 'deposit',
       depositAmount: amount,
-      depositMethod: method
+      depositMethod: amount > 0 ? method : null
     });
 
     this.closeModal('modal-deposit');
     this.renderQueue();
     this.renderDashboard();
-    alert(`บันทึกมัดจำ ${amount} บาทสำเร็จ!`);
+
+    if (amount > 0) {
+      alert(`บันทึกมัดจำ ${amount} บาทสำเร็จ!`);
+    } else {
+      alert(`บันทึกสถานะมัดจำสำเร็จ (ไม่มียอดมัดจำ)`);
+    }
+  }
+
+  // NEW: Helper for prefill notes
+  appendNote(elementId, text) {
+    const textarea = document.getElementById(elementId);
+    if (!textarea) return;
+    const current = textarea.value.trim();
+    textarea.value = current ? current + ', ' + text : text;
   }
 
   // Stage 3: Check-in Modal
@@ -2062,9 +3139,9 @@ class PetGroomingApp {
     this.currentQueueId = queueId;
     this.currentPet = pet;
 
-    // Pre-fill with existing weight
+    // Pre-fill with existing weight and notes
     document.getElementById('checkin-weight').value = pet.weight || '';
-    document.getElementById('checkin-notes').value = '';
+    document.getElementById('checkin-notes').value = queue.notes || '';
     document.getElementById('last-weight-display').textContent =
       pet.weight ? `${pet.weight} กก.` : 'ไม่มีข้อมูล';
 
@@ -2093,11 +3170,11 @@ class PetGroomingApp {
     // Update pet weight
     await this.store.updatePet(this.currentPet.id, { weight });
 
-    // Update queue status
+    // Update queue status and notes
     await this.store.updateQueue(this.currentQueueId, {
       status: 'check-in',
       checkInWeight: weight,
-      checkInNotes: notes
+      notes: notes // Unified notes
     });
 
     this.closeModal('modal-checkin');
@@ -2114,7 +3191,11 @@ class PetGroomingApp {
     // Clear form
     document.getElementById('completion-groomer').value = '';
     document.getElementById('completion-images').value = '';
-    document.getElementById('completion-notes').value = '';
+
+    // Pre-fill notes
+    const queue = this.store.getQueueById(queueId);
+    document.getElementById('completion-notes').value = queue.notes || '';
+
     document.getElementById('image-preview').innerHTML = '';
 
     // Populate groomer dropdown
@@ -2205,33 +3286,107 @@ class PetGroomingApp {
     if (!service) return;
 
     this.currentServiceId = serviceId;
+
+    // Populate Groomer Dropdown
+    this.populateGroomerDropdown('edit-service-groomer');
+
+    // Basic Fields
     document.getElementById('edit-service-id').value = serviceId;
+    document.getElementById('edit-service-date').value = service.date;
     document.getElementById('edit-service-price').value = service.price;
     document.getElementById('edit-service-notes').value = service.notes || '';
+    document.getElementById('edit-service-groomer').value = service.groomerId || '';
+
+    // Services (Array to Comma-Separated String)
+    let serviceText = '';
+    if (Array.isArray(service.servicesPerformed)) {
+      serviceText = service.servicesPerformed.join(', ');
+    } else if (service.servicesPerformed) {
+      serviceText = service.servicesPerformed;
+    }
+    document.getElementById('edit-service-services').value = serviceText;
+
+    // Time Fields (Extract HH:mm from ISO strings)
+    const formatTimeVal = (isoString) => {
+      if (!isoString) return '';
+      const d = new Date(isoString);
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    };
+
+    document.getElementById('edit-service-start-time').value = formatTimeVal(service.checkInAt);
+    document.getElementById('edit-service-end-time').value = formatTimeVal(service.completedAt);
 
     this.openModal('modal-edit-service');
   }
 
   async saveServiceUpdate() {
     const serviceId = this.currentServiceId;
-    const price = parseFloat(document.getElementById('edit-service-price').value);
+
+    // Get values
+    const dateVal = document.getElementById('edit-service-date').value;
+    const startTimeVal = document.getElementById('edit-service-start-time').value;
+    const endTimeVal = document.getElementById('edit-service-end-time').value;
+    const groomerId = document.getElementById('edit-service-groomer').value;
+    const servicesText = document.getElementById('edit-service-services').value;
+    const priceVal = document.getElementById('edit-service-price').value;
+    const price = parseFloat(priceVal);
     const notes = document.getElementById('edit-service-notes').value;
 
-    if (isNaN(price) || price < 0) {
-      alert('กรุณากรอกราคาที่ถูกต้อง');
+    if (!dateVal) {
+      alert('กรุณาระบุวันที่');
       return;
     }
 
-    const result = await this.store.updateServiceRecord(serviceId, {
-      price,
-      notes
-    });
+    // Reconstruct timestamps helper
+    const constructDate = (dateStr, timeStr) => {
+      if (!timeStr) return null;
+      const d = new Date(`${dateStr}T${timeStr}:00`);
+      // Validate Date
+      return isNaN(d.getTime()) ? null : d;
+    };
+
+    const newCheckInAt = constructDate(dateVal, startTimeVal);
+    const newCompletedAt = constructDate(dateVal, endTimeVal);
+
+    // Calculate new duration
+    let newDuration = 0;
+    if (newCheckInAt && newCompletedAt) {
+      const diff = newCompletedAt.getTime() - newCheckInAt.getTime();
+      newDuration = Math.round(diff / 60000); // minutes
+      if (isNaN(newDuration)) newDuration = 0;
+    }
+
+    // Parse services
+    const newServices = servicesText.split(',').map(s => s.trim()).filter(s => s !== '');
+
+    const updateData = {
+      date: dateVal,
+      checkInAt: newCheckInAt ? newCheckInAt.toISOString() : null,
+      completedAt: newCompletedAt ? newCompletedAt.toISOString() : null,
+      duration: newDuration,
+      groomerId: groomerId || null,
+      servicesPerformed: newServices,
+      price: isNaN(price) ? 0 : price,
+      notes: notes
+    };
+
+    const result = await this.store.updateServiceRecord(serviceId, updateData);
 
     if (result) {
       this.closeModal('modal-edit-service');
+      // No need to manually call renderServices if listeners are working,
+      // but let's keep it for immediate feedback if page match
       this.renderServices();
       alert('แก้ไขข้อมูลสำเร็จ');
     }
+  }
+
+  // NEW: Helper for prefill notes
+  appendNote(elementId, text) {
+    const textarea = document.getElementById(elementId);
+    if (!textarea) return;
+    const current = textarea.value.trim();
+    textarea.value = current ? current + ', ' + text : text;
   }
 
   populateGroomerDropdown(selectId = 'queue-groomer') {

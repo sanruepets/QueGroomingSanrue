@@ -22,65 +22,55 @@
   <div class="app-container">
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="sidebar">
-      <div class="sidebar-logo">
-        <div class="sidebar-logo-icon">🐾</div>
-        <div class="sidebar-logo-text">
+      <div class="brand">
+        <div class="brand-icon">🐾</div>
+        <div class="brand-text">
           <h1>QueSanrue</h1>
           <p>ระบบจองคิวอาบน้ำ</p>
         </div>
       </div>
 
-      <nav>
-        <ul class="nav-menu">
-          <li class="nav-item">
-            <a href="#" class="nav-link active" data-page="dashboard">
-              <span class="nav-icon">📊</span>
-              <span>แดชบอร์ด</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link" data-page="queue">
-              <span class="nav-icon">📋</span>
-              <span>คิววันนี้</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link" data-page="customers">
-              <span class="nav-icon">👥</span>
-              <span>ลูกค้า</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link" data-page="pets">
-              <span class="nav-icon">🐕</span>
-              <span>สัตว์เลี้ยง</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link" data-page="groomers">
-              <span class="nav-icon">✂️</span>
-              <span>ช่างตัดขน</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link" data-page="services">
-              <span class="nav-icon">📝</span>
-              <span>บันทึกบริการ</span>
-            </a>
-          </li>
-        </ul>
+      <ul class="menu">
+        <li class="menu-item active" onclick="app.showPage('dashboard')" id="nav-dashboard">
+          <span class="menu-icon">📊</span>
+          <span>แดชบอร์ด</span>
+        </li>
+        <li class="menu-item" onclick="app.showPage('queue')" id="nav-queue">
+          <span class="menu-icon">📋</span>
+          <span>คิววันนี้</span>
+        </li>
+        <li class="menu-item" onclick="app.showPage('customers')" id="nav-customers">
+          <span class="menu-icon">👥</span>
+          <span>ลูกค้า</span>
+        </li>
+        <li class="menu-item" onclick="app.showPage('pets')" id="nav-pets">
+          <span class="menu-icon">🐕</span>
+          <span>สัตว์เลี้ยง</span>
+        </li>
+        <li class="menu-item" onclick="app.showPage('groomers')" id="nav-groomers">
+          <span class="menu-icon">✂️</span>
+          <span>ช่างตัดขน</span>
+        </li>
+        <li class="menu-item" onclick="app.showPage('services')" id="nav-services">
+          <span class="menu-icon">📝</span>
+          <span>บันทึกบริการ</span>
+        </li>
+        <li class="menu-item" onclick="app.showPage('users')" id="nav-users">
+          <span class="menu-icon">👤</span>
+          <span>ผู้ใช้งาน</span>
+        </li>
+      </ul>
 
-        <!-- User Info and Logout -->
-        <div class="sidebar-footer">
-          <div class="user-info">
-            <span class="user-icon">👤</span>
-            <span class="user-name" id="current-user">User</span>
-          </div>
-          <button class="btn btn-secondary btn-sm" onclick="app.logout()" style="width: 100%;">
-            <span>🚪</span> ออกจากระบบ
-          </button>
+      <div class="user-profile">
+        <div class="user-avatar">AD</div>
+        <div class="user-info">
+          <h4 id="current-user">Admin</h4>
+          <p>ผู้ดูแลระบบ</p>
         </div>
-      </nav>
+        <button class="btn btn-sm btn-secondary" onclick="app.logout()" style="margin-left:auto; padding: 0.4rem;">
+          🚪
+        </button>
+      </div>
     </aside>
 
     <!-- Main Content -->
@@ -257,15 +247,54 @@
               <table class="table" id="groomers-table">
                 <thead>
                   <tr>
-                    <th>ชื่อ-นามสกุล</th>
+                    <th>ชื่อ-นามสกุล (ชื่อเล่น)</th>
                     <th>เบอร์โทร</th>
-                    <th>ความเชี่ยวชาญ</th>
-                    <th>ระดับ</th>
+                    <th>ตำแหน่ง</th>
+                    <th>ความถนัด</th>
                     <th>สถานะ</th>
                     <th>การจัดการ</th>
                   </tr>
                 </thead>
                 <tbody id="groomers-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Page -->
+      <div id="page-users" class="page hidden">
+        <div class="page-header">
+          <div class="page-title">
+            <h2>จัดการผู้ใช้งาน</h2>
+            <button class="btn btn-primary" onclick="app.showAddUserModal()">
+              <span>➕</span> เพิ่มผู้ใช้งาน
+            </button>
+          </div>
+        </div>
+
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="user-search" placeholder="ค้นหาชื่อ หรือเบอร์โทร..."
+            oninput="app.renderUsers()">
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>ชื่อผู้ใช้งาน</th>
+                    <th>ชื่อจริง</th>
+                    <th>ตำแหน่ง</th>
+                    <th>เบอร์โทร</th>
+                    <th>จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="users-tbody">
+                  <!-- User rows will be populated here -->
+                </tbody>
               </table>
             </div>
           </div>
@@ -289,17 +318,27 @@
           <div class="card-body">
             <div class="table-container">
               <table class="table" id="services-table">
-                <thead>
-                  <tr>
-                    <th>วันที่</th>
-                    <th>ลูกค้า</th>
-                    <th>สัตว์เลี้ยง</th>
-                    <th>ช่าง</th>
-                    <th>บริการ</th>
-                    <th>ระยะเวลา</th>
-                    <th>ราคา</th>
-                    <th>การจัดการ</th>
-                  </tr>
+                <tr>
+                  <th onclick="app.sortServices('date')" style="cursor:pointer">วันที่ <span id="sort-icon-date"
+                      class="sort-icon">⇅</span></th>
+                  <th onclick="app.sortServices('appointmentTime')" style="cursor:pointer">เวลา <span
+                      id="sort-icon-appointmentTime" class="sort-icon">⇅</span></th>
+                  <th onclick="app.sortServices('status')" style="cursor:pointer">สถานะ <span id="sort-icon-status"
+                      class="sort-icon">⇅</span></th>
+                  <th onclick="app.sortServices('customerName')" style="cursor:pointer">ลูกค้า <span
+                      id="sort-icon-customerName" class="sort-icon">⇅</span></th>
+                  <th onclick="app.sortServices('petName')" style="cursor:pointer">สัตว์เลี้ยง <span
+                      id="sort-icon-petName" class="sort-icon">⇅</span></th>
+                  <th onclick="app.sortServices('groomerName')" style="cursor:pointer">ช่าง <span
+                      id="sort-icon-groomerName" class="sort-icon">⇅</span></th>
+                  <th onclick="app.sortServices('serviceStr')" style="cursor:pointer">บริการ <span
+                      id="sort-icon-serviceStr" class="sort-icon">⇅</span></th>
+                  <th onclick="app.sortServices('duration')" style="cursor:pointer">ระยะเวลา <span
+                      id="sort-icon-duration" class="sort-icon">⇅</span></th>
+                  <th onclick="app.sortServices('checkInWeight')" style="cursor:pointer">น้ำหนัก <span
+                      id="sort-icon-checkInWeight" class="sort-icon">⇅</span></th>
+                  <th>การจัดการ</th>
+                </tr>
                 </thead>
                 <tbody id="services-tbody"></tbody>
               </table>
@@ -467,10 +506,16 @@
       <div class="modal-body">
         <form id="form-groomer">
           <input type="hidden" id="groomer-id">
-          <div class="form-group">
-            <label class="form-label required">ชื่อ-นามสกุล</label>
-            <input type="text" class="form-input" id="groomer-name" required>
-            <div class="form-error">กรุณากรอกชื่อ-นามสกุล</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label required">ชื่อ-นามสกุล</label>
+              <input type="text" class="form-input" id="groomer-name" required>
+              <div class="form-error">กรุณากรอกชื่อ-นามสกุล</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ชื่อเล่น</label>
+              <input type="text" class="form-input" id="groomer-nickname">
+            </div>
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -493,11 +538,10 @@
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">ระดับประสบการณ์</label>
-              <select class="form-select" id="groomer-experience">
-                <option value="junior">มือใหม่</option>
-                <option value="senior">มีประสบการณ์</option>
-                <option value="expert">ผู้เชี่ยวชาญ</option>
+              <label class="form-label">ตำแหน่ง</label>
+              <select class="form-select" id="groomer-level" required>
+                <option value="ช่างอาบน้ำ-ตัดขน">ช่างอาบน้ำ-ตัดขน</option>
+                <option value="ช่างอาบน้ำ">ช่างอาบน้ำ</option>
               </select>
             </div>
           </div>
@@ -640,34 +684,74 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label required">บริการที่ต้องการ</label>
+            <label class="form-label required">บริการหลัก (เลือก 1 อย่าง)</label>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+              <label><input type="checkbox" name="service-type" value="อาบน้ำ"> อาบน้ำ</label>
+              <label><input type="checkbox" name="service-type" value="อาบน้ำ-ตัดขน ด้วยกรรไกร"> อาบน้ำ-ตัดขน
+                ด้วยกรรไกร</label>
+              <label><input type="checkbox" name="service-type" value="อาบน้ำ-ตัดขน ด้วยปัตตาเลี่ยน"> อาบน้ำ-ตัดขน
+                ด้วยปัตตาเลี่ยน</label>
+              <label><input type="checkbox" name="service-type" value="อาบน้ำ พร้อมทำสปา"> อาบน้ำ พร้อมทำสปา</label>
+              <label><input type="checkbox" name="service-type" value="ฝากเลี้ยง"> ฝากเลี้ยง</label>
+              <label><input type="checkbox" name="service-type" value="อื่นๆ"> อื่นๆ</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">บริการเสริม (Add-ons)</label>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-top: 0.5rem;">
+              <label><input type="checkbox" name="service-addon" value="ตัดเล็บ"> ตัดเล็บ</label>
+              <label><input type="checkbox" name="service-addon" value="โรมขนอุ้งเท้า/ท้อง/ก้น"> โรมขน
+                (เท้า/ท้อง/ก้น)</label>
+              <label><input type="checkbox" name="service-addon" value="เช็ดหู"> เช็ดหู</label>
+              <label><input type="checkbox" name="service-addon" value="สางสังกะตัง"> สางสังกะตัง</label>
+              <label><input type="checkbox" name="service-addon" value="กำจัดเห็บหมัด"> กำจัดเห็บหมัด</label>
+              <label><input type="checkbox" name="service-addon" value="แปรงฟัน"> แปรงฟัน</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
               <label style="display: flex; align-items: center; gap: 0.5rem;">
-                <input type="checkbox" name="service-type" value="อาบน้ำ"> อาบน้ำ
+                <input type="checkbox" id="queue-priority">
+                <span class="form-label" style="margin: 0;">คิวด่วน (Priority)</span>
               </label>
               <label style="display: flex; align-items: center; gap: 0.5rem;">
-                <input type="checkbox" name="service-type" value="ตัดขน"> ตัดขน
-              </label>
-              <label style="display: flex; align-items: center; gap: 0.5rem;">
-                <input type="checkbox" name="service-type" value="ตัดเล็บ"> ตัดเล็บ
-              </label>
-              <label style="display: flex; align-items: center; gap: 0.5rem;">
-                <input type="checkbox" name="service-type" value="ทำสปา"> ทำสปา
-              </label>
-              <label style="display: flex; align-items: center; gap: 0.5rem;">
-                <input type="checkbox" name="service-type" value="ดูแลพิเศษ"> ดูแลพิเศษ
+                <input type="checkbox" id="queue-transport">
+                <span class="form-label" style="margin: 0;">บริการรับ-ส่ง 🚗</span>
               </label>
             </div>
           </div>
           <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 0.5rem;">
-              <input type="checkbox" id="queue-priority">
-              <span class="form-label" style="margin: 0;">คิวด่วน (Priority)</span>
-            </label>
+            <label class="form-label">จองจากช่องทางใด</label>
+            <select class="form-select" id="queue-source">
+              <option value="">-- ระบุช่องทาง --</option>
+              <option value="Facebook">Facebook Page</option>
+              <option value="Line">Line Official</option>
+              <option value="TIKTOK">TikTok</option>
+              <option value="Instagram">Instagram</option>
+              <option value="Google">Google Search/Maps</option>
+              <option value="Friend">เพื่อนแนะนำ</option>
+              <option value="Walk-in">Walk-in (เห็นหน้าร้าน)</option>
+              <option value="Other">อื่นๆ</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">หมายเหตุ</label>
             <textarea class="form-textarea" id="queue-notes"></textarea>
+            <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="app.appendNote('queue-notes', 'แมวดุ')">แมวดุ</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="app.appendNote('queue-notes', 'สุนัขดุ')">สุนัขดุ</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="app.appendNote('queue-notes', 'มีเห็บหมัด')">มีเห็บหมัด</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="app.appendNote('queue-notes', 'กลัวน้ำ')">กลัวน้ำ</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="app.appendNote('queue-notes', 'มีแผล')">มีแผล</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="app.appendNote('queue-notes', 'ขนพัน')">ขนพัน</button>
+            </div>
           </div>
         </form>
       </div>
@@ -688,8 +772,8 @@
       <div class="modal-body">
         <form id="form-deposit">
           <div class="form-group">
-            <label class="form-label required">ยอดมัดจำ (บาท)</label>
-            <input type="number" class="form-input" id="deposit-amount" step="0.01" min="0" required />
+            <label class="form-label">ยอดมัดจำ (บาท)</label>
+            <input type="number" class="form-input" id="deposit-amount" step="0.01" min="0" />
           </div>
           <div class="form-group">
             <label class="form-label">วิธีการชำระ</label>
@@ -727,6 +811,20 @@
             <label class="form-label">หมายเหตุพิเศษ</label>
             <textarea class="form-textarea" id="checkin-notes" rows="4"
               placeholder="เช่น แมวดุ, มีเห็บหมัด, มีแผล, กลัวน้ำ, อื่นๆ"></textarea>
+            <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="app.appendNote('checkin-notes', 'แมวดุ')">แมวดุ</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="app.appendNote('checkin-notes', 'สุนัขดุ')">สุนัขดุ</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="app.appendNote('checkin-notes', 'มีเห็บหมัด')">มีเห็บหมัด</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="app.appendNote('checkin-notes', 'กลัวน้ำ')">กลัวน้ำ</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="app.appendNote('checkin-notes', 'มีแผล')">มีแผล</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="app.appendNote('checkin-notes', 'ขนพัน')">ขนพัน</button>
+            </div>
 
             <!-- Quick note buttons -->
             <div class="quick-notes" style="margin-top: 0.5rem;">
@@ -798,10 +896,40 @@
       <div class="modal-body">
         <form id="form-edit-service">
           <input type="hidden" id="edit-service-id">
-          <div class="form-group">
-            <label class="form-label required">ราคา (บาท)</label>
-            <input type="number" class="form-input" id="edit-service-price" step="0.01" min="0" required />
+
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label class="form-label required">วันที่</label>
+              <input type="date" class="form-input" id="edit-service-date" required />
+            </div>
+            <div class="col-md-3 form-group">
+              <label class="form-label">เวลาเริ่ม</label>
+              <input type="time" class="form-input" id="edit-service-start-time" />
+            </div>
+            <div class="col-md-3 form-group">
+              <label class="form-label">เวลาจบ</label>
+              <input type="time" class="form-input" id="edit-service-end-time" />
+            </div>
           </div>
+
+          <div class="form-group">
+            <label class="form-label">บริการ (คั่นด้วยเครื่องหมายจุลภาค)</label>
+            <input type="text" class="form-input" id="edit-service-services" placeholder="เช่น อาบน้ำ, ตัดขน" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">ช่างผู้ให้บริการ</label>
+            <select class="form-select" id="edit-service-groomer">
+              <option value="">-- เลือกช่าง --</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">ราคา (ไม่คำนวน)</label>
+            <input type="number" class="form-input" id="edit-service-price" step="0.01" min="0"
+              placeholder="ระบุราคาเองถ้าต้องการ" />
+          </div>
+
           <div class="form-group">
             <label class="form-label">หมายเหตุ</label>
             <textarea class="form-textarea" id="edit-service-notes" rows="3"></textarea>
@@ -815,9 +943,113 @@
     </div>
   </div>
 
+  <!-- Service Details & Image Viewer Modal -->
+  <div id="modal-service-details" class="modal-overlay">
+    <div class="modal" style="max-width: 800px;">
+      <div class="modal-header">
+        <h3 id="modal-service-details-title" style="color: var(--secondary-color); font-weight: 700;">รายละเอียดบริการ
+        </h3>
+        <button class="modal-close" onclick="app.closeModal('modal-service-details')">×</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem 2rem;">
+        <div id="service-details-content" class="service-details-grid">
+          <!-- Dynamically populated -->
+        </div>
+        <div id="service-details-images-section" class="form-group"
+          style="margin-top: 2rem; border-top: 1px dashed var(--border-color); padding-top: 1.5rem;">
+          <label class="form-label" style="display: flex; align-items: center; gap: 8px; font-size: 1.1rem;">
+            📸 รูปภาพหลังปิดงาน
+          </label>
+          <div id="service-details-images" class="image-preview-grid" style="margin-top: 1rem;">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('modal-service-details')">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Modal -->
+  <div id="modal-user" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-user-title">เพิ่มผู้ใช้งาน</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-user')">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-user" onsubmit="event.preventDefault(); app.saveUser();">
+          <input type="hidden" id="user-id">
+
+          <div class="form-group">
+            <label class="form-label">ชื่อผู้ใช้งาน (Username) *</label>
+            <input type="text" class="form-input" id="user-username" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">รหัสผ่าน (Password)</label>
+            <input type="password" class="form-input" id="user-password" placeholder="ว่างไว้หากไม่ต้องการเปลี่ยน">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">ชื่อจริง *</label>
+            <input type="text" class="form-input" id="user-realname" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">ตำแหน่ง</label>
+            <select class="form-select" id="user-role">
+              <option value="admin">ผู้ดูแลระบบ (Admin)</option>
+              <option value="staff">พนักงาน (Staff)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">เบอร์โทร</label>
+            <input type="tel" class="form-input" id="user-phone">
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="app.closeModal('modal-user')">ยกเลิก</button>
+            <button type="submit" class="btn btn-primary">บันทึก</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <script src="firebase-config.js"></script>
+  <!-- Customer History Modal -->
+  <div id="modal-customer-history" class="modal-overlay">
+    <div class="modal" style="max-width: 800px;">
+      <div class="modal-header">
+        <h3 id="modal-history-title">ประวัติการใช้บริการ</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-customer-history')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>วันที่</th>
+                <th>เวลา</th>
+                <th>สัตว์เลี้ยง</th>
+                <th>บริการ</th>
+                <th>ช่าง</th>
+                <th>หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
   <script src="app.js"></script>
 </body>
 
