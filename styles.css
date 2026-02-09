@@ -321,13 +321,26 @@ body {
   background: #FECACA;
 }
 
-.btn-info {
-  background: #E0F2FE;
-  color: var(--info-color);
-}
-
 .btn-info:hover {
   background: #BAE6FD;
+}
+
+.btn-success {
+  background: #E8F5E9;
+  color: var(--success-color);
+}
+
+.btn-success:hover {
+  background: #C8E6C9;
+}
+
+.btn-warning {
+  background: #FFF3E0;
+  color: var(--warning-color);
+}
+
+.btn-warning:hover {
+  background: #FFE0B2;
 }
 
 .btn-sm {
