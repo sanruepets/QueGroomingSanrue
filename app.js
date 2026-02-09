@@ -1351,7 +1351,7 @@ class PetGroomingApp {
     // NEW: 4-stage workflow status map
     const statusMap = {
       'booking': '📝 จองคิว',
-      'deposit': '💰 มัดจำ',
+      'deposit': '💰 เก็บมัดจำแล้ว',
       'check-in': '🔍 เช็คอิน',
       'completed': '✅ เสร็จสิ้น',
       'cancelled': '❌ ยกเลิก'
@@ -1380,7 +1380,8 @@ class PetGroomingApp {
           <div>บริการ: ${queue.serviceType.join(', ')}${queue.duration ? ` (${queue.duration} นาที)` : ''}</div>
           ${groomer ? `<div>ช่าง: ${groomer.name}</div>` : ''}
           ${queue.checkInWeight ? `<div>น้ำหนัก: ${queue.checkInWeight} กก.</div>` : ''}
-          ${queue.isTransportIncluded ? '<div style="color: var(--primary); font-weight: 600;">🚗 บริการรับ-ส่ง</div>' : ''}
+        ${queue.depositAmount ? `<div style="color: var(--warning); font-weight: 600;">💰 มัดจำ: ${queue.depositAmount} บาท</div>` : ''}
+        ${queue.isTransportIncluded ? '<div style="color: var(--primary); font-weight: 600;">🚗 บริการรับ-ส่ง</div>' : ''}
           ${queue.priority ? '<div style="color: var(--error); font-weight: 600;">⚡ คิวด่วน</div>' : ''}
           ${queue.notes ? `<div style="color: var(--error); font-size: 0.9em;">📝 หมายเหตุ: ${queue.notes}</div>` : ''}
           <div>สถานะ: <span class="badge ${statusBadgeMap[queue.status]}">${statusMap[queue.status]}</span></div>
@@ -1698,7 +1699,7 @@ class PetGroomingApp {
         // Status Badge
         const statusMap = {
           'booking': '📝 จองคิว',
-          'deposit': '💰 มัดจำ',
+          'deposit': '💰 เก็บมัดจำแล้ว',
           'check-in': '🔍 เช็คอิน',
           'completed': '✅ เสร็จสิ้น',
           'cancelled': '❌ ยกเลิก'
@@ -1765,7 +1766,7 @@ class PetGroomingApp {
 
     const statusMap = {
       'booking': '📝 จองคิว',
-      'deposit': '💰 มัดจำ',
+      'deposit': '💰 เก็บมัดจำแล้ว',
       'check-in': '🔍 เช็คอิน',
       'completed': '✅ เสร็จสิ้น',
       'cancelled': '❌ ยกเลิก'
@@ -2022,6 +2023,7 @@ class PetGroomingApp {
 
   showAddQueueModal() {
     document.getElementById('form-queue').reset();
+    this.clearCustomerSelection(); // Fix: Clear previous customer selection
     this.populateCustomerDropdown('queue-customer');
     this.populateGroomerDropdown();
 
