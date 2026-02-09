@@ -171,6 +171,24 @@ class DataStore {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
+  async syncData() {
+    try {
+      console.log('[DEBUG] Manual sync triggered');
+      await this.store.initRealtimeListeners(); // One-time fetch for all collections
+      this.renderDashboard();
+      this.renderQueue();
+      this.renderCustomers();
+      this.renderPets();
+      this.renderGroomers();
+      this.renderUsers();
+      this.renderServices();
+      alert('ซิงค์ข้อมูลล่าสุดสำเร็จ!');
+    } catch (e) {
+      console.error('[DEBUG] Sync error:', e);
+      alert('การซิงค์ข้อมูลล้มเหลว กรุณาลองใหม่');
+    }
+  }
+
   // Customer operations
   // Getters remain synchronous because data is synced via listeners
   getCustomers() {
@@ -3428,6 +3446,7 @@ class PetGroomingApp {
   }
 
   async saveCompletion() {
+    console.log('[DEBUG] saveCompletion started for', this.currentQueueId);
     const groomerId = document.getElementById('completion-groomer').value;
     const notes = document.getElementById('completion-notes').value;
 
@@ -3442,19 +3461,28 @@ class PetGroomingApp {
       }
     }
 
-    await this.store.updateQueue(this.currentQueueId, {
-      status: 'completed',
-      groomerId,
-      completionImages: this.completionImages,
-      notes: notes || ''
-    });
+    try {
+      const result = await this.store.updateQueue(this.currentQueueId, {
+        status: 'completed',
+        groomerId,
+        completionImages: this.completionImages,
+        notes: notes || ''
+      });
 
-    this.closeModal('modal-completion');
-    this.renderQueue();
-    this.renderDashboard();
-    this.renderQueue();
-    this.renderDashboard();
-    alert('ปิดงานสำเร็จ!');
+      if (result) {
+        console.log('[DEBUG] saveCompletion updateQueue success');
+        this.closeModal('modal-completion');
+        this.renderQueue();
+        this.renderDashboard();
+        alert('ปิดงานสำเร็จ!');
+      } else {
+        console.error('[DEBUG] saveCompletion updateQueue returned null');
+        alert('ไม่สามารถอัปเดตสถานะได้ กรุณาลองใหม่');
+      }
+    } catch (e) {
+      console.error('[DEBUG] saveCompletion error:', e);
+      alert('เกิดข้อผิดพลาดในการบันทึก: ' + e.message);
+    }
   }
 
   // NEW: Edit Service Modal
