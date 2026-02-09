@@ -321,6 +321,11 @@ body {
   background: #FECACA;
 }
 
+.btn-info {
+  background: #E0F2FE;
+  color: var(--info-color);
+}
+
 .btn-info:hover {
   background: #BAE6FD;
 }
