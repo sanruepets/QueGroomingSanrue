@@ -1409,27 +1409,75 @@ th:hover .sort-icon {
 }
 
 /* Service Details Images */
+/* Service Details Images - Horizontal Scroll Layout */
+.image-preview-grid {
+  display: flex;
+  /* Changed from grid to flex */
+  gap: 15px;
+  overflow-x: auto;
+  /* Enable horizontal scrolling */
+  padding: 10px 5px;
+  /* Add padding for shadow/hover visibility */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  /* Smooth scroll on iOS */
+  /* Hide scrollbar for cleaner look (optional, but keep it accessible) */
+}
+
+/* Optional: Custom Scrollbar for Webkit */
+.image-preview-grid::-webkit-scrollbar {
+  height: 8px;
+}
+
+.image-preview-grid::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.image-preview-grid::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+.image-preview-grid::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
+}
+
 .preview-image-container {
-  width: 100%;
-  margin-bottom: 15px;
-  border-radius: 8px;
+  flex: 0 0 auto;
+  /* Prevent shrinking */
+  width: 250px;
+  /* Fixed width */
+  height: 250px;
+  /* Fixed height for square aspect ratio */
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 2px solid var(--border-color);
+  /* Thicker border like mockup */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  position: relative;
+  /* For overlays/icons */
+  background: #fff;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.preview-image-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--secondary-color);
+  /* Highlight border on hover */
 }
 
 .preview-image {
   width: 100%;
-  height: auto;
-  min-height: 200px;
-  max-height: 400px;
-  object-fit: contain;
-  background-color: #f8f9fa;
-  display: block;
+  height: 100%;
+  object-fit: cover;
+  /* Fill the square */
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.3s;
 }
 
 .preview-image:hover {
-  opacity: 0.95;
+  transform: scale(1.05);
+  /* Slight zoom on hover */
 }
