@@ -41,6 +41,7 @@ class DataStore {
         'อาบน้ำ-ตัดขน ด้วยกรรไกร': 0,
         'อาบน้ำ-ตัดขน ด้วยปัตตาเลี่ยน': 0,
         'อาบน้ำ พร้อมทำสปา': 0,
+        'หมาใหญ่': 0,
         'ฝากเลี้ยง': 0,
         'อื่นๆ': 0
       },
@@ -49,6 +50,7 @@ class DataStore {
         'อาบน้ำ-ตัดขน ด้วยกรรไกร': 120,
         'อาบน้ำ-ตัดขน ด้วยปัตตาเลี่ยน': 120, // Formerly 90-120
         'อาบน้ำ พร้อมทำสปา': 90,
+        'หมาใหญ่': 60,
         'ฝากเลี้ยง': 0,
         'อื่นๆ': 30
       },
@@ -616,11 +618,11 @@ class DataStore {
       servicesPerformed: queue.serviceType,
 
       // Workflow timestamps
-      bookingAt: queue.bookingAt,
-      depositAt: queue.depositAt,
-      checkInAt: queue.checkInAt,
-      completedAt: queue.completedAt,
-      completedAt: queue.completedAt,
+      bookingAt: queue.bookingAt || null,
+      depositAt: queue.depositAt || null,
+      checkInAt: queue.checkInAt || null,
+      completedAt: queue.completedAt || new Date().toISOString(),
+      completedAt: queue.completedAt || new Date().toISOString(),
       duration,
 
       // Appointment info
@@ -1322,6 +1324,7 @@ class PetGroomingApp {
         <div class="queue-pet">
           🐾 ${pet?.name || 'ไม่ระบุ'} 
           <span class="badge ${pet?.type === 'dog' ? 'badge-dog' : 'badge-cat'}">${pet?.type === 'dog' ? 'สุนัข' : 'แมว'}</span>
+          ${queue.isTransportIncluded ? '<span title="บริการรับ-ส่ง" style="font-size: 1.2em; margin-left: 5px;">🚗</span>' : ''}
         </div>
         <div class="queue-details">
           ${queue.appointmentTime ? `<div>📅 ${this.formatDate(queue.date)} 🕐 ${queue.appointmentTime}${queue.estimatedEndTime ? ` - ${queue.estimatedEndTime}` : ''}</div>` : `<div>📅 ${this.formatDate(queue.date)}</div>`}
@@ -2685,6 +2688,7 @@ class PetGroomingApp {
         isTransportIncluded: !!transportIncluded, // Ensure boolean
         marketingSource: marketingSource || '',
         notes: notes || '',
+        createdBy: this.currentUser,
         appointmentTime: selectedTimeSlot,
         estimatedEndTime: endTime,
         duration: duration
