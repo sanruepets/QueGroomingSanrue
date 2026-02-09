@@ -14,12 +14,18 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// Force debug logging for Safari troubleshooting
+firebase.firestore.setLogLevel('debug');
+
 // Force long polling and disable fetch streams for max compatibility with Safari/WebKit
 db.settings({
     experimentalForceLongPolling: true,
+    experimentalAutoDetectLongPolling: false, // Disable auto-detect to be certain
     useFetchStreams: false,
     merge: true
 });
+
+console.log('🔥 Firestore settings applied:', db._settings);
 
 window.db = db; // Make available globally for app.js
 

@@ -288,6 +288,8 @@
             try {
                 // Use the configured Firestore instance from firebase-config.js
                 const db = window.db;
+                console.log("🔍 Diagnostic: Current FS Settings:", db._settings);
+                console.log("🔍 Diagnostic: Attempting query for user:", username);
 
                 // Added a shorter 15s timeout for Safari testing
                 const timeoutPromise = new Promise((_, reject) =>
