@@ -3651,11 +3651,18 @@ class PetGroomingApp {
       durationText = hours > 0 ? `${hours}:${String(mins).padStart(2, '0')} ชม.` : `${mins} นาที`;
     }
 
-    // Generate time slot buttons from 9:00 to 19:00 (always show)
+    // Generate time slot buttons from 9:00 to 19:00 with 30-minute intervals
     let buttonsHTML = '';
     for (let hour = 9; hour <= 19; hour++) {
-      const time = `${String(hour).padStart(2, '0')}:00`;
-      buttonsHTML += `<button type="button" class="time-slot-button" data-time="${time}">${time}</button>`;
+      // 00 minutes
+      const time00 = `${String(hour).padStart(2, '0')}:00`;
+      buttonsHTML += `<button type="button" class="time-slot-button" data-time="${time00}">${time00}</button>`;
+
+      // 30 minutes (only up to 18:30, assuming 19:00 is the last slot)
+      if (hour < 19) {
+        const time30 = `${String(hour).padStart(2, '0')}:30`;
+        buttonsHTML += `<button type="button" class="time-slot-button" data-time="${time30}">${time30}</button>`;
+      }
     }
 
     timeSlotContainer.innerHTML = buttonsHTML;
