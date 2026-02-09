@@ -1384,12 +1384,12 @@ class PetGroomingApp {
         ${queue.isTransportIncluded ? '<div style="color: var(--primary); font-weight: 600;">🚗 บริการรับ-ส่ง</div>' : ''}
           ${queue.priority ? '<div style="color: var(--error); font-weight: 600;">⚡ คิวด่วน</div>' : ''}
           ${queue.notes ? `<div style="color: var(--error); font-size: 0.9em;">📝 หมายเหตุ: ${queue.notes}</div>` : ''}
-          <div>สถานะ: <span class="badge ${statusBadgeMap[queue.status]}">${statusMap[queue.status]}</span>
-            ${queue.depositAmount ?
-        `<span class="badge badge-outline-success" style="margin-left: 5px;">มีมัดจำ</span>` :
-        `<span class="badge badge-outline-secondary" style="margin-left: 5px;">ไม่มีมัดจำ</span>`
+          <div>สถานะ: <span class="badge ${statusBadgeMap[queue.status]}">
+            ${queue.status === 'deposit'
+        ? (queue.depositAmount ? '💰 มัดจำ' : '💰 ไม่มัดจำ')
+        : statusMap[queue.status]
       }
-          </div>
+          </span></div>
         </div>
         <div class="queue-actions">
           ${queue.status === 'booking' ?
