@@ -7,21 +7,17 @@ const firebaseConfig = {
     storageBucket: "quegroomingsanrue.firebasestorage.app",
     messagingSenderId: "939515937605",
     appId: "1:939515937605:web:4398219f99964ad570342c",
-    measurementId: "G-3W82XJBRWF"
+    // measurementId: "G-3W82XJBRWF" // Disable Analytics for Safari compatibility
 };
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Force debug logging for Safari troubleshooting
-firebase.firestore.setLogLevel('debug');
+// firebase.firestore.setLogLevel('debug'); // Turn off for production to reduce console noise
 
-// Force long polling and disable fetch streams for max compatibility with Safari/WebKit
+// Standard settings (Bypass experimental settings if onSnapshot is no longer used)
 db.settings({
-    experimentalForceLongPolling: true,
-    experimentalAutoDetectLongPolling: false, // Disable auto-detect to be certain
-    useFetchStreams: false,
     merge: true
 });
 
