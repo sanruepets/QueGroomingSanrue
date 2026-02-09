@@ -14,18 +14,21 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Force long polling for mobile devices (iOS WebKit compatibility)
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-if (isMobile) {
-    db.settings({ experimentalForceLongPolling: true });
-}
+// Force long polling and disable fetch streams for max compatibility with Safari/WebKit
+db.settings({
+    experimentalForceLongPolling: true,
+    useFetchStreams: false,
+    merge: true
+});
 
 window.db = db; // Make available globally for app.js
 
 
-// Try to enable persistence, but don't block app if it fails (Safari private mode)
+/*
+// TEST: Disable persistence for Safari troubleshooting
 try {
-    db.enablePersistence({ synchronizeTabs: true })
+    // Note: synchronizeTabs: true can sometimes hang in Safari/WebKit
+    db.enablePersistence()
         .then(() => {
             console.log('✓ Offline persistence enabled');
         })
@@ -37,9 +40,8 @@ try {
             } else {
                 console.warn('⚠️ Persistence failed:', err.code);
             }
-            // App continues to work without persistence
         });
 } catch (err) {
-    console.warn('⚠️ Persistence initialization failed (likely private mode):', err);
-    // App continues to work without persistence
+    console.warn('⚠️ Persistence initialization failed:', err);
 }
+*/

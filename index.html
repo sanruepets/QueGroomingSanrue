@@ -289,9 +289,9 @@
                 // Use the configured Firestore instance from firebase-config.js
                 const db = window.db;
 
-                // Query user by username with timeout
+                // Added a shorter 15s timeout for Safari testing
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('การเชื่อมต่อล่าช้าเกินไป (30s) กรุณาลองใหม่อีกครั้ง หรือตรวจสอบสัญญาณอินเทอร์เน็ต')), 30000)
+                    setTimeout(() => reject(new Error('Safari timeout: หากค้างนานเกินไป กรุณาตรวจเช็ค Setting > Safari > Privacy > "Prevent Cross-Site Tracking" จะต้องปิดอยู่ หรือลองปิดโหลดส่วนตัว (Private Mode)')), 15000)
                 );
 
                 const snapshot = await Promise.race([
