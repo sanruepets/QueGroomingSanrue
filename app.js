@@ -2782,9 +2782,6 @@ class PetGroomingApp {
     let serviceTypes = Array.from(serviceCheckboxes).map(cb => cb.value);
     const addons = Array.from(addonCheckboxes).map(cb => cb.value);
 
-    // Combine for storage
-    serviceTypes = [...serviceTypes, ...addons];
-
     // Get date and time selection
     const selectedDate = document.getElementById('queue-date').value;
     const selectedTimeSlot = document.getElementById('queue-time-slot').value;
@@ -2796,8 +2793,21 @@ class PetGroomingApp {
     const notes = document.getElementById('queue-notes').value;
     console.log('[DEBUG] saveQueue collected form data');
 
+    // Calculate duration based ONLY on main services (as requested)
+    let duration = 60;
     try {
-      if (!customerId || !petId || serviceTypes.length === 0) {
+      duration = this.store.calculateServiceDuration(serviceTypes);
+    } catch (e) {
+      console.error('Error calculating duration:', e);
+      duration = 60; // Fallback
+    }
+
+    // Combine for storage AFTER duration calculation
+    const allServices = [...serviceTypes, ...addons];
+    console.log('[DEBUG] saveQueue duration calculated:', duration);
+
+    try {
+      if (!customerId || !petId || allServices.length === 0) {
         alert('กรุณากรอกข้อมูลที่จำเป็น');
         return;
       }
@@ -2806,16 +2816,6 @@ class PetGroomingApp {
         alert('กรุณาเลือกวันที่นัดหมาย');
         return;
       }
-
-      // Calculate duration and end time
-      let duration = 60;
-      try {
-        duration = this.store.calculateServiceDuration(serviceTypes);
-      } catch (e) {
-        console.error('Error calculating duration:', e);
-        duration = 60; // Fallback
-      }
-      console.log('[DEBUG] saveQueue duration calculated:', duration);
 
       let endTime = null;
       if (selectedTimeSlot) {
@@ -2831,7 +2831,7 @@ class PetGroomingApp {
         petId,
         groomerId: assignedGroomerId,
         assignedGroomerId: assignedGroomerId,
-        serviceType: serviceTypes,
+        serviceType: allServices,
         date: selectedDate,
         bookingAt: new Date().toISOString(),
         status: 'booking',
@@ -2862,7 +2862,7 @@ class PetGroomingApp {
         const customer = this.store.getCustomerById(customerId);
         const pet = this.store.getPetById(petId);
         const groomer = assignedGroomerId ? this.store.getGroomerById(assignedGroomerId) : null;
-
+  
         const calendarPayload = {
           id: queue.id,
           ...queueData,
@@ -2876,7 +2876,7 @@ class PetGroomingApp {
           checkInWeight: pet ? (pet.weight || '-') : '-',
           checkInNotes: pet ? (pet.notes || '-') : '-'
         };
-
+  
         // Call Backend API
         fetch('/api/calendar/create-event', {
           method: 'POST',
@@ -2889,7 +2889,7 @@ class PetGroomingApp {
             else console.error('❌ Failed to create calendar event:', data.error);
           })
           .catch(err => console.error('❌ Calendar API Error:', err));
-
+  
       } catch (calError) {
         console.error('Error preparing calendar data:', calError);
       }
@@ -2905,7 +2905,7 @@ class PetGroomingApp {
 
       // Show confirmation with appointment details
       const groomer = assignedGroomerId ? this.store.getGroomerById(assignedGroomerId) : null;
-      const servicesText = serviceTypes.join(', ');
+      const servicesText = allServices.join(', ');
 
       let confirmMsg = `เพิ่มคิว #${queue.queueNumber} สำเร็จ!\n`;
       confirmMsg += `วันที่: ${this.formatDate(selectedDate)}\n`;
