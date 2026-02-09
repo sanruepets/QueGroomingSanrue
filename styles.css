@@ -1027,6 +1027,39 @@ th:hover .sort-icon {
   background: #f0f7ff !important;
 }
 
+/* Quick Note Buttons */
+.quick-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn-quick-note {
+  background: #FFFFFF;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  /* Pill shape */
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-weight: 500;
+}
+
+.btn-quick-note:hover {
+  background: #FFF3E0;
+  color: #EF6C00;
+  border-color: #FFB74D;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(239, 108, 0, 0.15);
+}
+
+.btn-quick-note:active {
+  transform: scale(0.95);
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .app-container {
@@ -1072,4 +1105,226 @@ th:hover .sort-icon {
   .stats-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Customer Selection Card */
+.customer-card-selected {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px;
+  position: relative;
+  animation: fadeIn 0.2s ease;
+}
+
+.customer-card-icon {
+  width: 40px;
+  height: 40px;
+  background: #e3f2fd;
+  color: #1976d2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.customer-card-info {
+  flex: 1;
+}
+
+.customer-card-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.customer-card-phone {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.btn-change-customer {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-change-customer:hover {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Search No Results */
+.search-no-results {
+  padding: 1rem;
+  text-align: center;
+  color: #666;
+  background: #fff;
+}
+
+.search-no-results .btn {
+  margin-top: 0.8rem;
+  width: 100%;
+  border-radius: 8px;
+  padding: 0.6rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.search-no-results .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Quick Add Form */
+.quick-add-form {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  animation: slideDown 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-add-form::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--primary-color);
+}
+
+.quick-form-header {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 1.2rem;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.quick-form-header::after {
+  content: 'สร้างลูกค้าใหม่';
+  font-size: 0.8rem;
+  color: #888;
+  font-weight: 400;
+  margin-left: auto;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Search Results - Separated */
+.search-result-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background: #f8f9fa;
+  padding-left: 20px;
+}
+
+.search-result-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0;
+}
+
+.search-result-phone {
+  font-size: 0.9rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.search-result-phone::before {
+  content: '📞';
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+/* Quick Add Container (Pet) */
+.quick-add-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.quick-add-container .form-select {
+  flex: 1;
+}
+
+.quick-add-container .btn {
+  white-space: nowrap;
+  height: 42px;
+  /* Match select height */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  border-radius: 8px;
+  background: var(--success-color);
+  border: none;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.quick-add-container .btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }

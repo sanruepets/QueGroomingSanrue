@@ -1983,7 +1983,35 @@ class PetGroomingApp {
     // Setup customer search
     this.setupCustomerSearch();
 
+    // Populate booker dropdown
+    this.populateBookerDropdown();
+
     this.openModal('modal-queue');
+  }
+
+  populateBookerDropdown() {
+    const bookerSelect = document.getElementById('queue-booker');
+    if (!bookerSelect) return;
+
+    const users = this.store.getUsers();
+    // Save current selection if any
+    const currentValue = bookerSelect.value;
+
+    let html = '<option value="">-- เลือกคนลงคิว --</option>';
+
+    // Add "Admin" as default/fallback option if no users or just to have it
+    // html += '<option value="Admin">Admin</option>'; 
+
+    users.forEach(user => {
+      const displayName = user.realname || user.username;
+      html += `<option value="${displayName}">${displayName}</option>`;
+    });
+
+    bookerSelect.innerHTML = html;
+
+    if (currentValue) {
+      bookerSelect.value = currentValue;
+    }
   }
 
   // Setup customer search functionality
@@ -2081,20 +2109,64 @@ class PetGroomingApp {
     const resultsDiv = document.getElementById('customer-search-results');
     const customerSelect = document.getElementById('queue-customer');
 
+    // Elements for new UI
+    const selectionContainer = document.getElementById('customer-selection-container');
+    const selectedCard = document.getElementById('selected-customer-card');
+    const nameEl = document.getElementById('selected-customer-name');
+    const phoneEl = document.getElementById('selected-customer-phone');
+
     // Set customer dropdown value
     customerSelect.value = customerId;
-
-    // Trigger change event to load pets
-    customerSelect.dispatchEvent(new Event('change'));
 
     // Get customer name for display
     const customer = this.store.getCustomers().find(c => c.id === customerId);
     if (customer) {
-      searchInput.value = `${customer.name} - ${customer.phone}`;
+      // Update Card UI
+      nameEl.textContent = customer.name;
+      phoneEl.textContent = customer.phone;
+
+      // Switch to Selected Mode
+      if (selectionContainer && selectedCard) {
+        selectionContainer.style.display = 'none';
+        selectedCard.style.display = 'flex';
+      } else {
+        // Fallback if elements missing
+        searchInput.value = `${customer.name} - ${customer.phone}`;
+      }
     }
 
     // Hide results
     resultsDiv.classList.remove('show');
+
+    // Trigger to load pets
+    this.loadPetsByCustomer();
+  }
+
+  // Clear customer selection
+  clearCustomerSelection() {
+    const customerSelect = document.getElementById('queue-customer');
+    const searchInput = document.getElementById('customer-search-input');
+    const selectionContainer = document.getElementById('customer-selection-container');
+    const selectedCard = document.getElementById('selected-customer-card');
+    const petSelect = document.getElementById('queue-pet');
+
+    // Reset values
+    customerSelect.value = '';
+    searchInput.value = '';
+
+    // Switch UI back to Search Mode
+    if (selectionContainer && selectedCard) {
+      selectionContainer.style.display = 'block';
+      selectedCard.style.display = 'none';
+    }
+
+    // Clear pets
+    if (petSelect) {
+      petSelect.innerHTML = '<option value="">-- เลือกสัตว์เลี้ยง --</option>';
+    }
+
+    // Focus search
+    searchInput.focus();
   }
 
   // Filter customer dropdown based on search results
@@ -2642,6 +2714,7 @@ class PetGroomingApp {
     const priority = document.getElementById('queue-priority').checked;
     const transportIncluded = document.getElementById('queue-transport').checked;
     const marketingSource = document.getElementById('queue-source').value;
+    const bookerName = document.getElementById('queue-booker').value;
     const notes = document.getElementById('queue-notes').value;
     console.log('[DEBUG] saveQueue collected form data');
 
@@ -3058,12 +3131,8 @@ class PetGroomingApp {
 
     if (!customer) return;
 
-    // Update dropdown
-    this.populateCustomerDropdown('queue-customer');
-    document.getElementById('queue-customer').value = customer.id;
-
-    // Clear pets dropdown since new customer selected
-    this.loadPetsByCustomer();
+    // Select the new customer using the new UI logic
+    this.selectCustomerFromSearch(customer.id);
 
     // Hide form and clear
     this.cancelQuickAddCustomer();
@@ -3187,6 +3256,18 @@ class PetGroomingApp {
     document.getElementById('last-weight-display').textContent =
       pet.weight ? `${pet.weight} กก.` : 'ไม่มีข้อมูล';
 
+    // Pre-select services and addons
+    const allServices = queue.serviceType || [];
+    const serviceCheckboxes = document.querySelectorAll('input[name="checkin-service-type"]');
+    serviceCheckboxes.forEach(cb => {
+      cb.checked = allServices.includes(cb.value);
+    });
+
+    const addonCheckboxes = document.querySelectorAll('input[name="checkin-service-addon"]');
+    addonCheckboxes.forEach(cb => {
+      cb.checked = allServices.includes(cb.value);
+    });
+
     this.openModal('modal-checkin');
   }
 
@@ -3209,15 +3290,38 @@ class PetGroomingApp {
       return;
     }
 
+    // Collect selected services (Main + Addons)
+    const selectedServices = [];
+    document.querySelectorAll('input[name="checkin-service-type"]:checked').forEach(cb => selectedServices.push(cb.value));
+    document.querySelectorAll('input[name="checkin-service-addon"]:checked').forEach(cb => selectedServices.push(cb.value));
+
+    // Recalculate duration
+    let duration = 60;
+    try {
+      duration = this.store.calculateServiceDuration(selectedServices);
+    } catch (e) {
+      console.error('Error calculating duration:', e);
+    }
+
     // Update pet weight
     await this.store.updatePet(this.currentPet.id, { weight });
 
-    // Update queue status and notes
-    await this.store.updateQueue(this.currentQueueId, {
+    // Update queue status, services, duration, and notes
+    const updateData = {
       status: 'check-in',
       checkInWeight: weight,
-      notes: notes // Unified notes
-    });
+      notes: notes,
+      serviceType: selectedServices,
+      duration: duration
+    };
+
+    // Recalculate estimated end time if we have a start time (appointmentTime)
+    const queue = this.store.getQueueById(this.currentQueueId);
+    if (queue.appointmentTime) {
+      updateData.estimatedEndTime = this.calculateEndTime(queue.appointmentTime, duration);
+    }
+
+    await this.store.updateQueue(this.currentQueueId, updateData);
 
     this.closeModal('modal-checkin');
     this.renderQueue();
