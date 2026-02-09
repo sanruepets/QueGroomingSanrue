@@ -1380,7 +1380,7 @@ class PetGroomingApp {
           <div>บริการ: ${queue.serviceType.join(', ')}${queue.duration ? ` (${queue.duration} นาที)` : ''}</div>
           ${groomer ? `<div>ช่าง: ${groomer.name}</div>` : ''}
           ${queue.checkInWeight ? `<div>น้ำหนัก: ${queue.checkInWeight} กก.</div>` : ''}
-        ${queue.depositAmount ? `<div style="color: var(--warning); font-weight: 600;">💰 มัดจำ: ${queue.depositAmount} บาท</div>` : ''}
+        ${queue.depositAmount ? `<div style="color: var(--warning); font-weight: 600;">💰 มัดจำ: ${queue.depositAmount} บาท</div>` : '<div style="color: var(--text-muted); font-size: 0.9em;">💰 ไม่มีมัดจำ</div>'}
         ${queue.isTransportIncluded ? '<div style="color: var(--primary); font-weight: 600;">🚗 บริการรับ-ส่ง</div>' : ''}
           ${queue.priority ? '<div style="color: var(--error); font-weight: 600;">⚡ คิวด่วน</div>' : ''}
           ${queue.notes ? `<div style="color: var(--error); font-size: 0.9em;">📝 หมายเหตุ: ${queue.notes}</div>` : ''}
