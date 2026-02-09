@@ -1623,10 +1623,57 @@ class PetGroomingApp {
     // Show ONLY Service Records (History) - NOT Queue
     let allRecords = [];
 
-    // 1. Process Queue Items - DISABLED per user request
-    // this.store.getQueue().forEach(q => {
-    //   ...Queue processing removed...
-    // });
+    // 1. Process Queue Items - Include COMPLETED items from Queue to backfill missing data
+    this.store.getQueue().forEach(q => {
+      // Only include if status is 'completed'
+      if (q.status !== 'completed') return;
+
+      // Determine time range
+      let timeRange = '-';
+      if (q.appointmentTime) {
+        timeRange = q.appointmentTime;
+        if (q.estimatedEndTime) timeRange += ` - ${q.estimatedEndTime}`;
+      } else if (q.checkInAt && q.completedAt) {
+        // Fallback if no appointment time
+        const checkIn = new Date(q.checkInAt);
+        const completed = new Date(q.completedAt);
+        if (!isNaN(checkIn) && !isNaN(completed)) {
+          const formatTime = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+          timeRange = `${formatTime(checkIn)} - ${formatTime(completed)}`;
+        }
+      }
+
+      const customer = this.store.getCustomerById(q.customerId);
+      const pet = this.store.getPetById(q.petId);
+      const groomer = q.groomerId ? this.store.getGroomerById(q.groomerId) :
+        (q.assignedGroomerId ? this.store.getGroomerById(q.assignedGroomerId) : null);
+
+      let serviceStr = Array.isArray(q.serviceType) ? q.serviceType.join(' ') : q.serviceType;
+
+      allRecords.push({
+        type: 'queue', // Mark as from queue
+        date: q.date,
+        time: timeRange,
+        appointmentTime: q.appointmentTime,
+        dateTime: new Date(`${q.date}T${q.appointmentTime || '00:00'}`),
+        status: 'completed',
+        customerId: q.customerId,
+        petId: q.petId,
+        groomerId: q.groomerId || q.assignedGroomerId,
+        services: Array.isArray(q.serviceType) ? q.serviceType : [q.serviceType],
+        duration: q.duration,
+        checkInAt: q.checkInAt,
+        completedAt: q.completedAt,
+        checkInWeight: q.checkInWeight,
+        id: q.id, // Use queue ID
+        queueId: q.id, // Explicit queue ID reference
+        // Resolved names
+        customerName: customer ? customer.name.toLowerCase() : '',
+        petName: pet ? pet.name.toLowerCase() : '',
+        groomerName: groomer ? groomer.name.toLowerCase() : '',
+        serviceStr: serviceStr || ''
+      });
+    });
 
 
     // 2. Process Service Records
@@ -1645,6 +1692,11 @@ class PetGroomingApp {
       if (timeRange === '-' && s.appointmentTime) {
         timeRange = s.appointmentTime;
         if (s.estimatedEndTime) timeRange += ` - ${s.estimatedEndTime}`;
+      }
+
+      // CHECK DUPLICATES: If this service record corresponds to a queue item we already added, skip it
+      if (s.queueId && allRecords.some(r => r.queueId === s.queueId)) {
+        return;
       }
 
       const customer = this.store.getCustomerById(s.customerId);
@@ -1668,6 +1720,7 @@ class PetGroomingApp {
         completedAt: s.completedAt,
         checkInWeight: s.checkInWeight,
         id: s.id,
+        queueId: s.queueId, // Add queueId for reference
         // Resolved names
         customerName: customer ? customer.name.toLowerCase() : '',
         petName: pet ? pet.name.toLowerCase() : '',
