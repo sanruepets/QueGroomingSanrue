@@ -3657,15 +3657,19 @@ class PetGroomingApp {
 
     // Generate time slot buttons from 9:00 to 19:00 with 30-minute intervals
     let buttonsHTML = '';
+    const currentSelectedTime = timeSlotInput.value; // Store current selection
+
     for (let hour = 9; hour <= 19; hour++) {
       // 00 minutes
       const time00 = `${String(hour).padStart(2, '0')}:00`;
-      buttonsHTML += `<button type="button" class="time-slot-button" data-time="${time00}">${time00}</button>`;
+      const selected00 = time00 === currentSelectedTime ? 'selected' : '';
+      buttonsHTML += `<button type="button" class="time-slot-button ${selected00}" data-time="${time00}">${time00}</button>`;
 
       // 30 minutes (only up to 18:30, assuming 19:00 is the last slot)
       if (hour < 19) {
         const time30 = `${String(hour).padStart(2, '0')}:30`;
-        buttonsHTML += `<button type="button" class="time-slot-button" data-time="${time30}">${time30}</button>`;
+        const selected30 = time30 === currentSelectedTime ? 'selected' : '';
+        buttonsHTML += `<button type="button" class="time-slot-button ${selected30}" data-time="${time30}">${time30}</button>`;
       }
     }
 
