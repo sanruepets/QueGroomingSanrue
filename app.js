@@ -131,7 +131,9 @@ class DataStore {
     // Add to Firestore
     try {
       const docRef = await this.db.collection('customers').add(newCustomer);
-      return { id: docRef.id, ...newCustomer };
+      const createdCustomer = { id: docRef.id, ...newCustomer };
+      this.data.customers.push(createdCustomer);
+      return createdCustomer;
     } catch (e) {
       console.error("Error adding customer: ", e);
       alert('บันทึกข้อมูลไม่สำเร็จ: ' + e.message);
@@ -142,6 +144,10 @@ class DataStore {
   async updateCustomer(id, updates) {
     try {
       await this.db.collection('customers').doc(id).update(updates);
+      const index = this.data.customers.findIndex(c => c.id === id);
+      if (index !== -1) {
+        this.data.customers[index] = { ...this.data.customers[index], ...updates };
+      }
       return { id, ...updates };
     } catch (e) {
       console.error("Error updating customer: ", e);
@@ -153,6 +159,7 @@ class DataStore {
   async deleteCustomer(id) {
     try {
       await this.db.collection('customers').doc(id).delete();
+      this.data.customers = this.data.customers.filter(c => c.id !== id);
     } catch (e) {
       console.error("Error deleting customer: ", e);
       alert('ลบข้อมูลไม่สำเร็จ');
@@ -187,7 +194,9 @@ class DataStore {
     };
     try {
       const docRef = await this.db.collection('pets').add(newPet);
-      return { id: docRef.id, ...newPet };
+      const createdPet = { id: docRef.id, ...newPet };
+      this.data.pets.push(createdPet);
+      return createdPet;
     } catch (e) {
       console.error("Error adding pet: ", e);
       alert('บันทึกข้อมูลสัตว์เลี้ยงไม่สำเร็จ');
@@ -198,6 +207,10 @@ class DataStore {
   async updatePet(id, updates) {
     try {
       await this.db.collection('pets').doc(id).update(updates);
+      const index = this.data.pets.findIndex(p => p.id === id);
+      if (index !== -1) {
+        this.data.pets[index] = { ...this.data.pets[index], ...updates };
+      }
       return { id, ...updates };
     } catch (e) {
       console.error("Error updating pet: ", e);
@@ -209,6 +222,7 @@ class DataStore {
   async deletePet(id) {
     try {
       await this.db.collection('pets').doc(id).delete();
+      this.data.pets = this.data.pets.filter(p => p.id !== id);
     } catch (e) {
       console.error("Error deleting pet: ", e);
       alert('ลบข้อมูลสัตว์เลี้ยงไม่สำเร็จ');
@@ -236,7 +250,9 @@ class DataStore {
     };
     try {
       const docRef = await this.db.collection('groomers').add(newGroomer);
-      return { id: docRef.id, ...newGroomer };
+      const createdGroomer = { id: docRef.id, ...newGroomer };
+      this.data.groomers.push(createdGroomer);
+      return createdGroomer;
     } catch (e) {
       console.error("Error adding groomer: ", e);
       alert('บันทึกข้อมูลช่างไม่สำเร็จ');
@@ -247,6 +263,10 @@ class DataStore {
   async updateGroomer(id, updates) {
     try {
       await this.db.collection('groomers').doc(id).update(updates);
+      const index = this.data.groomers.findIndex(g => g.id === id);
+      if (index !== -1) {
+        this.data.groomers[index] = { ...this.data.groomers[index], ...updates };
+      }
       return { id, ...updates };
     } catch (e) {
       console.error("Error updating groomer: ", e);
@@ -258,6 +278,7 @@ class DataStore {
   async deleteGroomer(id) {
     try {
       await this.db.collection('groomers').doc(id).delete();
+      this.data.groomers = this.data.groomers.filter(g => g.id !== id);
     } catch (e) {
       console.error("Error deleting groomer: ", e);
       alert('ลบข้อมูลช่างไม่สำเร็จ');
@@ -362,7 +383,9 @@ class DataStore {
     try {
       const docRef = await this.db.collection('queue').add(newQueue);
       console.log('[DEBUG] DataStore.addQueue Firestore add success', docRef.id);
-      return { id: docRef.id, ...newQueue };
+      const createdQueue = { id: docRef.id, ...newQueue };
+      this.data.queue.push(createdQueue);
+      return createdQueue;
     } catch (e) {
       console.error("Error adding queue: ", e);
       alert('จองคิวไม่สำเร็จ');
@@ -399,6 +422,10 @@ class DataStore {
 
     try {
       await this.db.collection('queue').doc(id).update(finalUpdates);
+      const index = this.data.queue.findIndex(q => q.id === id);
+      if (index !== -1) {
+        this.data.queue[index] = { ...this.data.queue[index], ...finalUpdates };
+      }
       return { id, ...queue, ...finalUpdates };
     } catch (e) {
       console.error("Error updating queue: ", e);
@@ -410,6 +437,7 @@ class DataStore {
   async deleteQueue(id) {
     try {
       await this.db.collection('queue').doc(id).delete();
+      this.data.queue = this.data.queue.filter(q => q.id !== id);
     } catch (e) {
       console.error("Error deleting queue: ", e);
       alert('ลบคิวไม่สำเร็จ');
@@ -635,6 +663,8 @@ class DataStore {
     this.db.collection('serviceRecords').add(serviceRecord)
       .then(docRef => {
         console.log("Service record created with ID: ", docRef.id);
+        const createdRecord = { id: docRef.id, ...serviceRecord };
+        this.data.serviceRecords.push(createdRecord);
       })
       .catch(error => {
         console.error("Error adding service record: ", error);
@@ -662,6 +692,10 @@ class DataStore {
   async updateServiceRecord(id, updates) {
     try {
       await this.db.collection('serviceRecords').doc(id).update(updates);
+      const index = this.data.serviceRecords.findIndex(r => r.id === id);
+      if (index !== -1) {
+        this.data.serviceRecords[index] = { ...this.data.serviceRecords[index], ...updates };
+      }
       return { id, ...updates };
     } catch (e) {
       console.error("Error updating service record: ", e);
@@ -724,7 +758,9 @@ class DataStore {
     };
     try {
       const docRef = await this.db.collection('users').add(newUser);
-      return { id: docRef.id, ...newUser };
+      const createdUser = { id: docRef.id, ...newUser };
+      this.data.users.push(createdUser);
+      return createdUser;
     } catch (e) {
       console.error("Error adding user: ", e);
       alert('บันทึกข้อมูลผู้ใช้งานไม่สำเร็จ');
@@ -735,6 +771,10 @@ class DataStore {
   async updateUser(id, updates) {
     try {
       await this.db.collection('users').doc(id).update(updates);
+      const index = this.data.users.findIndex(u => u.id === id);
+      if (index !== -1) {
+        this.data.users[index] = { ...this.data.users[index], ...updates };
+      }
       return { id, ...updates };
     } catch (e) {
       console.error("Error updating user: ", e);
@@ -746,6 +786,7 @@ class DataStore {
   async deleteUser(id) {
     try {
       await this.db.collection('users').doc(id).delete();
+      this.data.users = this.data.users.filter(u => u.id !== id);
     } catch (e) {
       console.error("Error deleting user: ", e);
       alert('ลบข้อมูลผู้ใช้งานไม่สำเร็จ');
