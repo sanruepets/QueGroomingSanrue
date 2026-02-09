@@ -1379,6 +1379,7 @@ th:hover .sort-icon {
   padding: 0 16px;
   border-radius: 8px;
   background: var(--success-color);
+  color: #FFFFFF;
   border: none;
   font-weight: 500;
   transition: all 0.2s;
