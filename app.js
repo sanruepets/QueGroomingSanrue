@@ -83,8 +83,8 @@ class DataStore {
     };
   }
 
-  // Initialize real-time listeners
-  initRealtimeListeners() {
+  // Initialize listeners (Modified to use one-time get() for Safari compatibility)
+  async initRealtimeListeners() {
     if (!this.db) {
       console.warn('Firestore not initialized, falling back to empty state');
       return;
@@ -92,42 +92,32 @@ class DataStore {
 
     const collections = this.initialCollections;
 
-    collections.forEach(col => {
-      this.db.collection(col).onSnapshot(snapshot => {
+    // Use for...of for async/await support in the loop
+    for (const col of collections) {
+      try {
+        console.log(`[DEBUG] Fetching initial data for ${col}...`);
+        const snapshot = await this.db.collection(col).get();
         this.data[col] = snapshot.docs.map(doc => {
           const data = doc.data();
-          // Always use the real Firestore document ID
           return { ...data, id: doc.id };
         });
 
         // Mark collection as initialized
         this.initializedCollections.add(col);
-
-        // Check if all essential collections are loaded
-        if (this.initializedCollections.size >= collections.length && window.app && window.app.loading) {
-          console.log('[DEBUG] All initial collections loaded');
-          window.app.onInitDataLoaded();
-        }
-
-        // Trigger UI update if app is initialized
-        if (window.app && !window.app.loading) {
-          // We need to debounce or selectively update to avoid loops
-          // For simplicity, we just trigger render if appropriate
-          if (window.app.currentPage === 'dashboard') window.app.renderDashboard();
-          if (window.app.currentPage === 'queue') window.app.renderQueue();
-          if (window.app.currentPage === 'customers') window.app.renderCustomers();
-          if (window.app.currentPage === 'pets') window.app.renderPets();
-          if (window.app.currentPage === 'groomers') window.app.renderGroomers();
-          if (window.app.currentPage === 'users') window.app.renderUsers();
-        }
-      }, error => {
-        console.error(`Error listening to ${col}:`, error);
+      } catch (error) {
+        console.error(`Error fetching ${col}:`, error);
         if (error.code === 'permission-denied' && !window.hasShownPermissionError) {
-          alert('⚠️ ไม่สามารถเข้าถึงข้อมูลได้ (Permission Denied)\nกรุณาตั้งค่า Firestore Rules ใน Firebase Console ให้เปิดใช้งาน (Allow read/write)');
+          alert('⚠️ ไม่สามารถเข้าถึงข้อมูลได้ (Permission Denied)\nกรุณาตั้งค่า Firestore Rules ใน Firebase Console ให้เปิดใช้งาน');
           window.hasShownPermissionError = true;
         }
-      });
-    });
+      }
+    }
+
+    // After all fetches are done
+    if (window.app && window.app.loading) {
+      console.log('[DEBUG] All initial collections loaded via GET');
+      window.app.onInitDataLoaded();
+    }
   }
 
   // Async methods for adding data
