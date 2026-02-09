@@ -1898,7 +1898,7 @@ class PetGroomingApp {
       imageSection.style.display = 'block';
       imageContainer.innerHTML = images.map(img => `
         <div class="preview-image-container">
-          <img src="${img.base64}" class="preview-image" onclick="window.open('${img.base64}', '_blank')">
+          <img src="${img.base64}" class="preview-image" onclick="app.openLightbox('${img.base64}')">
         </div>
       `).join('');
     } else {
@@ -1906,6 +1906,16 @@ class PetGroomingApp {
     }
 
     this.openModal('modal-service-details');
+  }
+
+  // New: Open Lightbox
+  openLightbox(imageSrc) {
+    const modal = document.getElementById('modal-lightbox');
+    const img = document.getElementById('lightbox-image');
+    if (modal && img) {
+      img.src = imageSrc;
+      this.openModal('modal-lightbox');
+    }
   }
 
   sortServices(column) {

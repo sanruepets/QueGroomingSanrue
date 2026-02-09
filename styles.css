@@ -1481,3 +1481,9 @@ th:hover .sort-icon {
   transform: scale(1.05);
   /* Slight zoom on hover */
 }
+
+/* Lightbox Specifics */
+.modal-close-lightbox:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
