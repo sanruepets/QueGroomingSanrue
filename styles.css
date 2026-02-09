@@ -1407,3 +1407,29 @@ th:hover .sort-icon {
   transform: translateY(-1px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
+
+/* Service Details Images */
+.preview-image-container {
+  width: 100%;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.preview-image {
+  width: 100%;
+  height: auto;
+  min-height: 200px;
+  max-height: 400px;
+  object-fit: contain;
+  background-color: #f8f9fa;
+  display: block;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.preview-image:hover {
+  opacity: 0.95;
+}
