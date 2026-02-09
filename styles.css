@@ -547,6 +547,11 @@ th:hover .sort-icon {
   color: #4338CA;
 }
 
+.badge-other {
+  background: #F3E8FF;
+  color: #7E22CE;
+}
+
 .badge-outline-success {
   background: white;
   color: var(--success-color);

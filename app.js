@@ -1341,6 +1341,24 @@ class PetGroomingApp {
     }
   }
 
+  // Helper: Get pet icon
+  getPetIcon(pet) {
+    if (pet?.name === 'บอนบอน') return '🐰';
+    return pet?.type === 'dog' ? '🐕' : '🐱';
+  }
+
+  // Helper: Get pet badge class
+  getPetBadgeClass(pet) {
+    if (pet?.name === 'บอนบอน') return 'badge-other';
+    return pet?.type === 'dog' ? 'badge-dog' : 'badge-cat';
+  }
+
+  // Helper: Get pet type label
+  getPetLabel(pet) {
+    if (pet?.name === 'บอนบอน') return 'กระต่าย';
+    return pet?.type === 'dog' ? 'สุนัข' : 'แมว';
+  }
+
   createQueueCard(queue) {
     const customer = this.store.getCustomerById(queue.customerId);
     const pet = this.store.getPetById(queue.petId);
@@ -1371,10 +1389,10 @@ class PetGroomingApp {
         <div class="queue-number">#${queue.queueNumber}</div>
         <div class="queue-customer">${customer?.name || 'ไม่ระบุ'}</div>
         <div class="queue-pet">
-          🐾 ${pet?.name || 'ไม่ระบุ'} 
-          <span class="badge ${pet?.type === 'dog' ? 'badge-dog' : 'badge-cat'}">${pet?.type === 'dog' ? 'สุนัข' : 'แมว'}</span>
-          ${queue.isTransportIncluded ? '<span title="บริการรับ-ส่ง" style="font-size: 1.2em; margin-left: 5px;">🚗</span>' : ''}
-        </div>
+        ${this.getPetIcon(pet)} ${pet?.name || 'ไม่ระบุ'} 
+        <span class="badge ${this.getPetBadgeClass(pet)}">${this.getPetLabel(pet)}</span>
+        ${queue.isTransportIncluded ? '<span title="บริการรับ-ส่ง" style="font-size: 1.2em; margin-left: 5px;">🚗</span>' : ''}
+      </div>
         <div class="queue-details">
           ${queue.appointmentTime ? `<div>📅 ${this.formatDate(queue.date)} 🕐 ${queue.appointmentTime}${queue.estimatedEndTime ? ` - ${queue.estimatedEndTime}` : ''}</div>` : `<div>📅 ${this.formatDate(queue.date)}</div>`}
           <div>บริการ: ${queue.serviceType.join(', ')}${queue.duration ? ` (${queue.duration} นาที)` : ''}</div>
@@ -2981,8 +2999,8 @@ class PetGroomingApp {
     const pets = this.store.getPetsByCustomer(customerId);
     petSelect.innerHTML = '<option value="">-- เลือกสัตว์เลี้ยง --</option>';
     pets.forEach(p => {
-      const petType = p.type === 'dog' ? '🐕' : '🐱';
-      petSelect.innerHTML += `<option value="${p.id}">${petType} ${p.name}</option>`;
+      const petIcon = this.getPetIcon(p);
+      petSelect.innerHTML += `<option value="${p.id}">${petIcon} ${p.name}</option>`;
     });
   }
 
