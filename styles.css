@@ -547,6 +547,18 @@ th:hover .sort-icon {
   color: #4338CA;
 }
 
+.badge-outline-success {
+  background: white;
+  color: var(--success-color);
+  border: 1px solid var(--success-color);
+}
+
+.badge-outline-secondary {
+  background: white;
+  color: var(--text-light);
+  border: 1px solid var(--text-light);
+}
+
 /* Calendar */
 .calendar {
   display: grid;
