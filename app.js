@@ -3497,26 +3497,74 @@ class PetGroomingApp {
 
     if (files.length === 0) return;
 
-    Array.from(files).forEach((file, index) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imgData = e.target.result;
-        this.completionImages.push({
-          id: this.store.generateId(),
-          base64: imgData,
-          timestamp: new Date().toISOString()
-        });
+    Array.from(files).forEach((file) => {
+      // Check if HEIC
+      const isHeic = file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic';
 
-        const imgDiv = document.createElement('div');
-        imgDiv.className = 'image-preview-item';
-        imgDiv.innerHTML = `
-          <img src="${imgData}" alt="Preview ${index + 1}">
-          <button class="image-preview-remove" onclick="app.removeCompletionImage(${this.completionImages.length - 1}); return false;">✕</button>
-        `;
-        preview.appendChild(imgDiv);
-      };
-      reader.readAsDataURL(file);
+      if (isHeic && window.heic2any) {
+        console.log('Converting HEIC file...', file.name);
+        // Show a temporary loading indicator
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'image-preview-item loading';
+        loadingDiv.innerHTML = '<div class="spinner"></div><span>Converting...</span>';
+        preview.appendChild(loadingDiv);
+
+        heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.7
+        })
+          .then((conversionResult) => {
+            // Remove loading indicator
+            if (loadingDiv.parentNode) loadingDiv.parentNode.removeChild(loadingDiv);
+
+            // conversionResult can be a blob or array of blobs.
+            const blob = Array.isArray(conversionResult) ? conversionResult[0] : conversionResult;
+            // Create a new File object for consistency if needed, or just pass blob
+            this.readAndPreviewImage(blob, preview);
+          })
+          .catch((e) => {
+            console.error('HEIC conversion failed', e);
+            if (loadingDiv.parentNode) loadingDiv.parentNode.removeChild(loadingDiv);
+            alert('ไม่สามารถแปลงไฟล์ HEIC ได้: ' + file.name);
+          });
+      } else {
+        this.readAndPreviewImage(file, preview);
+      }
     });
+  }
+
+  readAndPreviewImage(file, preview) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imgData = e.target.result;
+
+      // Safety check for invalid data
+      if (!imgData || typeof imgData !== 'string') {
+        console.error('Invalid image data read from file');
+        return;
+      }
+
+      this.completionImages.push({
+        id: this.store.generateId(),
+        base64: imgData,
+        timestamp: new Date().toISOString()
+      });
+
+      // Use the current length - 1 as the index, which is correct for the newly added item
+      // Note: If multiple images load simultaneously, this index logic relies on single-threaded JS execution
+      // ensuring push and DOM creation happen together.
+      const newIndex = this.completionImages.length - 1;
+
+      const imgDiv = document.createElement('div');
+      imgDiv.className = 'image-preview-item';
+      imgDiv.innerHTML = `
+        <img src="${imgData}" alt="Preview">
+        <button class="image-preview-remove" onclick="app.removeCompletionImage(${newIndex}); return false;">✕</button>
+      `;
+      preview.appendChild(imgDiv);
+    };
+    reader.readAsDataURL(file);
   }
 
   removeCompletionImage(index) {
