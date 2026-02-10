@@ -3526,7 +3526,11 @@ class PetGroomingApp {
           .catch((e) => {
             console.error('HEIC conversion failed', e);
             if (loadingDiv.parentNode) loadingDiv.parentNode.removeChild(loadingDiv);
-            alert('ไม่สามารถแปลงไฟล์ HEIC ได้: ' + file.name);
+
+            // Fallback: Try to use the original file
+            console.log('Falling back to original file:', file.name);
+            alert(`ไม่สามารถแปลงไฟล์ HEIC ได้: ${file.name}\nระบบจะใช้ไฟล์ต้นฉบับแทน (อาจไม่แสดงผลในบางอุปกรณ์)`);
+            this.readAndPreviewImage(file, preview);
           });
       } else {
         this.readAndPreviewImage(file, preview);
