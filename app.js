@@ -3538,16 +3538,10 @@ class PetGroomingApp {
     });
   }
 
-  readAndPreviewImage(file, preview) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const imgData = e.target.result;
-
-      // Safety check for invalid data
-      if (!imgData || typeof imgData !== 'string') {
-        console.error('Invalid image data read from file');
-        return;
-      }
+  async readAndPreviewImage(file, preview) {
+    try {
+      // Compress image to JPEG (1024px max, 0.7 quality)
+      const imgData = await this.resizeImage(file, 1024, 0.7);
 
       this.completionImages.push({
         id: this.store.generateId(),
@@ -3556,8 +3550,6 @@ class PetGroomingApp {
       });
 
       // Use the current length - 1 as the index, which is correct for the newly added item
-      // Note: If multiple images load simultaneously, this index logic relies on single-threaded JS execution
-      // ensuring push and DOM creation happen together.
       const newIndex = this.completionImages.length - 1;
 
       const imgDiv = document.createElement('div');
@@ -3567,8 +3559,52 @@ class PetGroomingApp {
         <button class="image-preview-remove" onclick="app.removeCompletionImage(${newIndex}); return false;">✕</button>
       `;
       preview.appendChild(imgDiv);
-    };
-    reader.readAsDataURL(file);
+    } catch (e) {
+      console.error('Image resize/read failed', e);
+      // If it's a blob from heic2any, name might be missing
+      const fileName = file.name || 'ไฟล์ที่ถูกแปลง';
+      alert('ไม่สามารถประมวลผลรูปภาพได้: ' + fileName);
+    }
+  }
+
+  resizeImage(file, maxWidth = 1024, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Calculate new dimensions
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Export as compressed JPEG
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        };
+        img.onerror = (err) => {
+          console.error('Image loading error:', err);
+          reject(new Error('Failed to load image into canvas'));
+        };
+        img.src = e.target.result;
+      };
+      reader.onerror = (err) => {
+        console.error('FileReader error:', err);
+        reject(new Error('Failed to read file'));
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
   removeCompletionImage(index) {
