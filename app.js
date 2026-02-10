@@ -1,4 +1,105 @@
 // ===================================
+// DEBUG LOGGING SYSTEM
+// ===================================
+
+class DebugLogger {
+  constructor() {
+    this.logs = [];
+    this.maxLogs = 1000;
+    this.listeners = [];
+    this.init();
+  }
+
+  init() {
+    const originalConsole = {
+      log: console.log.bind(console),
+      info: console.info.bind(console),
+      error: console.error.bind(console),
+      debug: console.debug.bind(console),
+      warn: console.warn.bind(console)
+    };
+
+    const levels = ['log', 'info', 'error', 'debug', 'warn'];
+
+    levels.forEach(level => {
+      console[level] = (...args) => {
+        // Log to browser console as usual
+        originalConsole[level](...args);
+
+        // Save to internal log
+        this.addLog(level, args);
+      };
+    });
+
+    // Catch unhandled errors
+    window.onerror = (message, source, lineno, colno, error) => {
+      this.addLog('error', [`Global Error: ${message} at ${source}:${lineno}:${colno}`]);
+    };
+
+    window.onunhandledrejection = (event) => {
+      this.addLog('error', [`Promise Rejection: ${event.reason}`]);
+    };
+  }
+
+  addLog(level, args) {
+    const timestamp = new Date();
+    const message = args.map(arg => {
+      if (typeof arg === 'object') {
+        try {
+          return JSON.stringify(arg, null, 2);
+        } catch (e) {
+          return '[Object]';
+        }
+      }
+      return String(arg);
+    }).join(' ');
+
+    const logEntry = {
+      id: Date.now() + Math.random(),
+      level: level === 'log' ? 'info' : level, // Normalize log to info for UI
+      message,
+      timestamp,
+      type: this.categorizeLog(message, level)
+    };
+
+    this.logs.unshift(logEntry);
+    if (this.logs.length > this.maxLogs) {
+      this.logs.pop();
+    }
+
+    this.notifyListeners(logEntry);
+  }
+
+  categorizeLog(message, level) {
+    if (message.includes('Firestore') || message.includes('db.') || message.includes('fetching')) return 'http';
+    if (level === 'error') return 'error';
+    if (level === 'debug') return 'debug';
+    return 'info';
+  }
+
+  addListener(callback) {
+    this.listeners.push(callback);
+  }
+
+  notifyListeners(log) {
+    this.listeners.forEach(callback => callback(log));
+  }
+
+  clear() {
+    this.logs = [];
+    this.notifyListeners({ type: 'clear' });
+  }
+
+  getLogs(category = 'all') {
+    if (category === 'all') return this.logs;
+    return this.logs.filter(log => log.type === category);
+  }
+}
+
+// Global logger instance
+window.logger = new DebugLogger();
+
+// ===================================
 // DATA MODELS & STORAGE
 // ===================================
 
@@ -835,6 +936,24 @@ class PetGroomingApp {
     this.currentPage = 'dashboard';
     this.selectedDashboardDate = null; // null = today
     this.loading = true; // NEW: Loading state
+
+    // Debug state
+    this.debugClicks = 0;
+    this.lastDebugClick = 0;
+    this.debugCategory = 'all';
+    this.isDebugModalOpen = false;
+
+    // Register log listener
+    window.logger.addListener((log) => {
+      if (this.isDebugModalOpen) {
+        if (log.type === 'clear') {
+          document.getElementById('debug-log-container').innerHTML = '';
+        } else if (this.debugCategory === 'all' || this.debugCategory === log.type) {
+          this.appendLogToUI(log);
+        }
+      }
+    });
+
     this.init();
   }
 
@@ -3953,6 +4072,89 @@ class PetGroomingApp {
     this.selectedDashboardDate = null;
     this.renderDashboard();
     this.renderCalendar();
+  }
+
+  // ===================================
+  // DEBUG MODE & LOGS
+  // ===================================
+
+  handleVersionClick() {
+    const now = Date.now();
+    if (now - this.lastDebugClick > 1000) {
+      this.debugClicks = 0;
+    }
+    this.debugClicks++;
+    this.lastDebugClick = now;
+
+    if (this.debugClicks >= 5) {
+      this.debugClicks = 0;
+      this.openDebugModal();
+    }
+  }
+
+  openDebugModal() {
+    this.isDebugModalOpen = true;
+    const modal = document.getElementById('modal-debug');
+    if (modal) {
+      modal.classList.add('active');
+      this.renderLogs('all');
+    }
+  }
+
+  closeDebugModal() {
+    this.isDebugModalOpen = false;
+    const modal = document.getElementById('modal-debug');
+    if (modal) {
+      modal.classList.remove('active');
+    }
+  }
+
+  filterLogs(category, element) {
+    this.debugCategory = category;
+
+    // Update active tab UI
+    document.querySelectorAll('.debug-tab').forEach(tab => tab.classList.remove('active'));
+    element.classList.add('active');
+
+    this.renderLogs(category);
+  }
+
+  renderLogs(category) {
+    const container = document.getElementById('debug-log-container');
+    if (!container) return;
+
+    const logs = window.logger.getLogs(category);
+    container.innerHTML = logs.map(log => this.createLogHtml(log)).join('');
+  }
+
+  appendLogToUI(log) {
+    const container = document.getElementById('debug-log-container');
+    if (!container) return;
+
+    const logHtml = this.createLogHtml(log);
+    container.insertAdjacentHTML('afterbegin', logHtml);
+  }
+
+  createLogHtml(log) {
+    const time = new Date(log.timestamp).toLocaleTimeString();
+    return `
+      <div class="log-entry ${log.type}">
+        <span class="log-time">[${time}]</span>
+        <span class="log-message">${this.escapeHtml(log.message)}</span>
+      </div>
+    `;
+  }
+
+  clearLogs() {
+    if (confirm('ยืนยันหน้าการล้าง Log ทั้งหมด?')) {
+      window.logger.clear();
+    }
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 }
 

@@ -1487,3 +1487,84 @@ th:hover .sort-icon {
   opacity: 0.8;
   transform: scale(1.1);
 }
+
+/* Debug Modal Styles */
+.debug-tabs .debug-tab {
+  cursor: pointer;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-light);
+  transition: var(--transition);
+  background: white;
+  border: 1px solid var(--border-color);
+}
+
+.debug-tabs .debug-tab:hover {
+  background: var(--bg-color);
+  color: var(--secondary-color);
+}
+
+.debug-tabs .debug-tab.active {
+  background: var(--secondary-color);
+  color: white;
+  border-color: var(--secondary-color);
+}
+
+.log-entry {
+  padding: 10px 14px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  line-height: 1.5;
+  word-break: break-all;
+  white-space: pre-wrap;
+  border-left: 5px solid #eee;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.log-entry.info {
+  border-left-color: var(--secondary-color);
+  background: #f0f9ff;
+}
+
+.log-entry.error {
+  border-left-color: var(--danger-color);
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.log-entry.debug {
+  border-left-color: #94a3b8;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.log-entry.http {
+  border-left-color: var(--success-color);
+  background: #f0fdf4;
+}
+
+.log-time {
+  font-weight: 700;
+  margin-right: 10px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.version-info {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-light);
+  opacity: 0.6;
+  cursor: pointer;
+  user-select: none;
+  padding: 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.version-info:hover {
+  opacity: 1;
+  color: var(--primary-color);
+}
