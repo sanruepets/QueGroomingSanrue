@@ -112,7 +112,6 @@ class DataStore {
       groomers: [],
       queue: [],
       serviceRecords: [],
-      serviceRecords: [],
       dailySchedules: [],
       users: [],
       settings: this.getDefaultSettings()
@@ -197,8 +196,7 @@ class DataStore {
 
     const collections = this.initialCollections;
 
-    // Use for...of for async/await support in the loop
-    for (const col of collections) {
+    const fetchPromises = collections.map(async (col) => {
       try {
         console.log(`[DEBUG] Fetching initial data for ${col}...`);
         const snapshot = await this.db.collection(col).get();
@@ -216,7 +214,10 @@ class DataStore {
           window.hasShownPermissionError = true;
         }
       }
-    }
+    });
+
+    // Wait for all fetches to complete
+    await Promise.all(fetchPromises);
 
     // After all fetches are done
     if (window.app && window.app.loading) {
@@ -972,7 +973,7 @@ class PetGroomingApp {
         console.warn('Initialization timed out, force clearing loading state');
         this.onInitDataLoaded();
       }
-    }, 5000);
+    }, 15000); // Increased to 15 seconds for more reliability
   }
 
   // NEW: Called when initial data is loaded from Firebase
@@ -2972,6 +2973,8 @@ class PetGroomingApp {
     const transportIncluded = document.getElementById('queue-transport').checked;
     const marketingSource = document.getElementById('queue-source').value;
     const bookerName = document.getElementById('queue-booker').value;
+    const health = document.getElementById('queue-health').value;
+    const ticks = document.getElementById('queue-ticks').value;
     const notes = document.getElementById('queue-notes').value;
     console.log('[DEBUG] saveQueue collected form data');
 
@@ -3021,7 +3024,10 @@ class PetGroomingApp {
         isTransportIncluded: !!transportIncluded, // Ensure boolean
         marketingSource: marketingSource || '',
         notes: notes || '',
+        health: health || '',
+        ticks: ticks || '',
         createdBy: this.currentUser,
+        bookerName: bookerName || '-', // Added bookerName
         appointmentTime: selectedTimeSlot,
         estimatedEndTime: endTime,
         duration: duration
@@ -3089,20 +3095,9 @@ class PetGroomingApp {
       const groomer = assignedGroomerId ? this.store.getGroomerById(assignedGroomerId) : null;
       const servicesText = allServices.join(', ');
 
-      let confirmMsg = `เพิ่มคิว #${queue.queueNumber} สำเร็จ!\n`;
-      confirmMsg += `วันที่: ${this.formatDate(selectedDate)}\n`;
 
-      if (selectedTimeSlot && queue.estimatedEndTime) {
-        confirmMsg += `${servicesText} (${durationText})\n`;
-        confirmMsg += `เวลา: ${selectedTimeSlot} - ${queue.estimatedEndTime}\n`;
-      } else {
-        confirmMsg += `บริการ: ${servicesText}\n`;
-      }
-
-      if (transportIncluded) confirmMsg += `+ บริการรับ-ส่ง 🚗\n`;
-      if (groomer) confirmMsg += `ช่าง: ${groomer.name}`;
-
-      alert(confirmMsg);
+      // Show summary popup instead of simple alert
+      this.showBookingSummary(queue, queueData);
 
       this.closeModal('modal-queue');
       console.log('[DEBUG] saveQueue closing modal');
@@ -3113,8 +3108,85 @@ class PetGroomingApp {
       console.log('[DEBUG] saveQueue finished');
     } catch (err) {
       console.error('Error saving queue:', err);
-      alert('เกิดข้อผิดพลาดในการบันทึกคิว: ' + err.message);
+      // alert('เกิดข้อผิดพลาดในการบันทึกคิว: ' + err.message);
     }
+  }
+
+  showBookingSummary(queue, data) {
+    const customer = this.store.getCustomerById(data.customerId);
+    const pet = this.store.getPetById(data.petId);
+
+    // Format date: DD-MM-YYYY (Buddhist Year)
+    const dateObj = new Date(data.date);
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const year = dateObj.getFullYear() + 543;
+    const dateStr = `${day}-${month}-${year}`;
+
+    // Format time: Start - End
+    const timeStr = data.appointmentTime && data.estimatedEndTime
+      ? `${data.appointmentTime} - ${data.estimatedEndTime}`
+      : (data.appointmentTime || '-');
+
+    // Animal type mapping: dog -> สุนัข, cat -> แมว, other -> อื่นๆ
+    let animalType = 'อื่นๆ';
+    if (pet) {
+      if (pet.type === 'dog') animalType = 'สุนัข';
+      else if (pet.type === 'cat') animalType = 'แมว';
+      // For all other types including 'other', use 'อื่นๆ' (Specificity is in breed field)
+    }
+
+    // Format services: Main first, then Add-ons
+    const mainServicesList = this.store.data.settings.serviceTypes;
+    const mainServices = data.serviceType.filter(s => mainServicesList.includes(s));
+    const addons = data.serviceType.filter(s => !mainServicesList.includes(s));
+    const servicesText = [...mainServices, ...addons].join(', ');
+
+    // Merge notes logic
+    const healthVal = data.health && data.health.trim() !== '' ? data.health : (pet && pet.notes ? pet.notes : 'ไม่มี');
+    const ticksVal = data.ticks && data.ticks.trim() !== '' ? data.ticks : 'ไม่มี';
+    const healthNotes = `${healthVal} เห็บหมัด: ${ticksVal}`;
+
+    let summaryText = `สรุปจองคิวอาบ-ตัดขน 🐶🐱\n`;
+    summaryText += `วันที่ ${dateStr}\n`;
+    summaryText += ` เวลา ${timeStr}'\n\n`;
+
+    summaryText += `ประเภทสัตว์เลี้ยง: ${animalType}\n`;
+    summaryText += `สายพันธุ์: ${pet ? pet.breed || '-' : '-'}\n`;
+    summaryText += `น้ำหนักโดยประมาณ: ${pet ? pet.weight || '-' : '-'}\n`;
+    summaryText += `ทำอะไร: ${servicesText}\n`;
+    summaryText += `ชื่อน้อง: น้อง${pet ? pet.name : '-'}\n`;
+    summaryText += `โรคประจำตัวและเห็บ-หมัด: ${healthNotes}\n`;
+    summaryText += `ชื่อผู้ปกครอง: คุณ${customer ? customer.name : '-'}\n`;
+    summaryText += `เบอร์ติดต่อกลับ: ${customer ? customer.phone : '-'}\n\n`;
+
+    summaryText += `รายละเอียดเพิ่มเติม: ${data.notes || '-'}\n`;
+    summaryText += `ช่องทางการจอง: ${data.marketingSource || '-'}\n`;
+    summaryText += `ผู้รับคิว: ${data.bookerName || '-'}`;
+
+    document.getElementById('booking-summary-text').textContent = summaryText;
+    this.openModal('modal-booking-summary');
+  }
+
+  copyBookingSummary() {
+    const text = document.getElementById('booking-summary-text').textContent;
+    const btn = document.getElementById('btn-copy-summary');
+    const originalContent = btn.innerHTML;
+
+    navigator.clipboard.writeText(text).then(() => {
+      btn.innerHTML = '<span>✅</span> คัดลอกสำเร็จ!';
+      btn.classList.add('btn-success');
+      btn.classList.remove('btn-primary');
+
+      setTimeout(() => {
+        btn.innerHTML = originalContent;
+        btn.classList.add('btn-primary');
+        btn.classList.remove('btn-success');
+      }, 2000);
+    }).catch(err => {
+      console.error('Failed to copy: ', err);
+      alert('ไม่สามารถคัดลอกได้: ' + err);
+    });
   }
 
   // Calculate end time string from start time and duration

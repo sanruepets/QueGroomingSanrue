@@ -775,6 +775,16 @@
               <option value="Other">อื่นๆ</option>
             </select>
           </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">โรคประจำตัว</label>
+              <input type="text" class="form-input" id="queue-health" placeholder="ไม่มี">
+            </div>
+            <div class="form-group">
+              <label class="form-label">เห็บ-หมัด</label>
+              <input type="text" class="form-input" id="queue-ticks" placeholder="ไม่มี">
+            </div>
+          </div>
           <div class="form-group">
             <label class="form-label">คนลงคิว (ถ้ามี)</label>
             <select class="form-select" id="queue-booker">
@@ -804,6 +814,31 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="app.closeModal('modal-queue')">ยกเลิก</button>
         <button class="btn btn-primary" onclick="app.saveQueue()">เพิ่มคิว</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Booking Summary Modal -->
+  <div id="modal-booking-summary" class="modal-overlay">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">สรุปจองคิวอาบ-ตัดขน 🐶🐱</h3>
+        <button class="modal-close" onclick="app.closeModal('modal-booking-summary')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="summary-container"
+          style="background: #f8fafc; border: 1px solid var(--border-color); padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem;">
+          <pre id="booking-summary-text"
+            style="white-space: pre-wrap; font-family: inherit; font-size: 1rem; color: var(--text-color); margin: 0; line-height: 1.6;"></pre>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; gap: 10px; justify-content: center; padding: 1.5rem 2rem;">
+        <button class="btn btn-secondary" onclick="app.closeModal('modal-booking-summary')"
+          style="flex: 1;">ปิด</button>
+        <button class="btn btn-primary" id="btn-copy-summary" onclick="app.copyBookingSummary()"
+          style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span>📋</span> คัดลอกข้อความ
+        </button>
       </div>
     </div>
   </div>
@@ -1154,7 +1189,7 @@
       <img id="lightbox-image" src="" alt="Full view" style="max-width: 90%; max-height: 90%; object-fit: contain;">
     </div>
   </div>
-  <script src="app.js"></script>
+  <script src="app.js?v=5.0.7"></script>
 </body>
 
 </html>
