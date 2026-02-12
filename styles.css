@@ -717,6 +717,27 @@ th:hover .sort-icon {
   align-items: center;
 }
 
+.btn-edit-action {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1rem;
+  padding: 0;
+}
+
+.btn-edit-action:hover {
+  background: #e2e8f0;
+  transform: scale(1.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
 .queue-customer {
   font-size: 1.1rem;
   font-weight: 600;

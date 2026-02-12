@@ -1560,7 +1560,11 @@ class PetGroomingApp {
 
     return `
       <div class="queue-item ${queue.status}">
-        <div class="queue-number">#${queue.queueNumber}</div>
+        <div class="queue-number">
+          #${queue.queueNumber}
+          ${queue.status !== 'completed' && queue.status !== 'cancelled' ?
+        `<button class="btn-edit-action" onclick="app.editQueue('${queue.id}')" title="แก้ไข">📝</button>` : ''}
+        </div>
         <div class="queue-customer">${customer?.name || 'ไม่ระบุ'}</div>
         <div class="queue-pet">
         ${this.getPetIcon(pet)} ${pet?.name || 'ไม่ระบุ'} 
@@ -2282,6 +2286,7 @@ class PetGroomingApp {
 
 
   showAddQueueModal() {
+    this.editingQueueId = null;
     document.getElementById('form-queue').reset();
     this.clearCustomerSelection(); // Fix: Clear previous customer selection
     this.populateCustomerDropdown('queue-customer');
@@ -2296,6 +2301,13 @@ class PetGroomingApp {
 
     // Populate booker dropdown
     this.populateBookerDropdown();
+
+    // Set modal title back to default
+    const modalTitle = document.querySelector('#modal-queue .modal-title');
+    if (modalTitle) modalTitle.textContent = 'เพิ่มคิวใหม่';
+
+    const saveBtn = document.getElementById('queue-save-btn');
+    if (saveBtn) saveBtn.textContent = 'เพิ่มคิว';
 
     this.openModal('modal-queue');
   }
@@ -3003,6 +3015,84 @@ class PetGroomingApp {
   // QUEUE OPERATIONS
   // ===================================
 
+  editQueue(id) {
+    console.log('[DEBUG] editQueue called with id:', id);
+    const queue = this.store.getQueue().find(q => q.id === id);
+    if (!queue) {
+      alert('ไม่พบข้อมูลคิว');
+      return;
+    }
+
+    this.editingQueueId = id;
+
+    // Reset and setup modal
+    document.getElementById('form-queue').reset();
+    this.populateCustomerDropdown('queue-customer');
+    this.populateGroomerDropdown();
+    this.populateBookerDropdown();
+    this.initializeQueueModal();
+    this.setupCustomerSearch();
+
+    // Set modal title
+    const modalTitle = document.querySelector('#modal-queue .modal-title');
+    if (modalTitle) modalTitle.textContent = 'แก้ไขข้อมูลการจอง';
+
+    // Populate fields
+    const customerSelect = document.getElementById('queue-customer');
+    customerSelect.value = queue.customerId;
+    this.selectCustomerFromSearch(queue.customerId); // This updates the UI card
+
+    // After loading pets for customer, set pet
+    this.loadPetsByCustomer(queue.customerId);
+    const petSelect = document.getElementById('queue-pet');
+    petSelect.value = queue.petId;
+
+    document.getElementById('queue-date').value = queue.date;
+    document.getElementById('queue-groomer').value = queue.assignedGroomerId || '';
+    document.getElementById('queue-source').value = queue.marketingSource || '';
+    document.getElementById('queue-booker').value = queue.bookerName || '';
+    document.getElementById('queue-health').value = queue.health || '';
+    document.getElementById('queue-ticks').value = queue.ticks || '';
+    document.getElementById('queue-notes').value = queue.notes || '';
+    document.getElementById('queue-priority').checked = !!queue.priority;
+    document.getElementById('queue-transport').checked = !!queue.isTransportIncluded;
+
+    // Set services (checkboxes)
+    const services = queue.serviceType || [];
+    document.querySelectorAll('input[name="service-type"]').forEach(cb => {
+      cb.checked = services.includes(cb.value);
+    });
+    document.querySelectorAll('input[name="service-addon"]').forEach(cb => {
+      cb.checked = services.includes(cb.value);
+    });
+
+    // CRITICAL: Set the time slot value BEFORE calling updateTimeSlots
+    const timeSlotInput = document.getElementById('queue-time-slot');
+    timeSlotInput.value = queue.appointmentTime || '';
+
+    // Populate time slot buttons
+    this.updateTimeSlots();
+
+    // Highlight the selected time slot button (Fixing typo from .time-slot-btn to .time-slot-button)
+    setTimeout(() => {
+      if (queue.appointmentTime) {
+        const timeButtons = document.querySelectorAll('.time-slot-button');
+        timeButtons.forEach(btn => {
+          if (btn.dataset.time === queue.appointmentTime) {
+            btn.classList.add('selected');
+          }
+        });
+      }
+    }, 100);
+
+    // Update Save button text
+    const saveBtn = document.getElementById('queue-save-btn');
+    if (saveBtn) saveBtn.textContent = 'บันทึกการแก้ไข';
+
+    this.openModal('modal-queue');
+  }
+
+
   async saveQueue() {
     console.log('[DEBUG] saveQueue started');
     const customerId = document.getElementById('queue-customer').value;
@@ -3084,14 +3174,25 @@ class PetGroomingApp {
       };
 
       console.log('Sending to DataStore:', queueData);
-      console.log('[DEBUG] saveQueue calling store.addQueue');
-      // alert('กำลังบันทึกข้อมูล... (Step 1)'); // Debug alert
 
-      const queue = await this.store.addQueue(queueData);
-      console.log('[DEBUG] saveQueue store.addQueue returned', queue);
+      let queue;
+      if (this.editingQueueId) {
+        console.log('[DEBUG] saveQueue calling store.updateQueue for id:', this.editingQueueId);
+        // On edit, we don't want to override bookingAt or status if they already exist
+        // But we do want to update all other fields.
+        const updateData = { ...queueData };
+        delete updateData.bookingAt;
+        delete updateData.status;
+
+        queue = await this.store.updateQueue(this.editingQueueId, updateData);
+        console.log('[DEBUG] saveQueue store.updateQueue returned', queue);
+      } else {
+        console.log('[DEBUG] saveQueue calling store.addQueue');
+        queue = await this.store.addQueue(queueData);
+        console.log('[DEBUG] saveQueue store.addQueue returned', queue);
+      }
 
       console.log('DataStore returned:', queue);
-      // alert('บันทึกข้อมูลเรียบร้อย (Step 2)'); // Debug alert
       if (!queue) return;
 
       /*
