@@ -26,11 +26,10 @@ console.log('🔥 Firestore settings applied:', db._settings);
 window.db = db; // Make available globally for app.js
 
 
-/*
-// TEST: Disable persistence for Safari troubleshooting
+// TEST: Enable persistence for offline support and faster loads
 try {
-    // Note: synchronizeTabs: true can sometimes hang in Safari/WebKit
-    db.enablePersistence()
+    // Note: synchronizeTabs: true can sometimes hang in Safari/WebKit but is generally recommended
+    db.enablePersistence({ synchronizeTabs: true })
         .then(() => {
             console.log('✓ Offline persistence enabled');
         })
@@ -38,7 +37,7 @@ try {
             if (err.code === 'failed-precondition') {
                 console.warn('⚠️ Persistence disabled: Multiple tabs open');
             } else if (err.code === 'unimplemented') {
-                console.warn('⚠️ Persistence not supported by browser');
+                // console.warn('⚠️ Persistence not supported by browser');
             } else {
                 console.warn('⚠️ Persistence failed:', err.code);
             }
@@ -46,4 +45,3 @@ try {
 } catch (err) {
     console.warn('⚠️ Persistence initialization failed:', err);
 }
-*/

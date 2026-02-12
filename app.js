@@ -118,7 +118,9 @@ class DataStore {
     };
 
     this.initializedCollections = new Set();
-    this.initialCollections = ['customers', 'pets', 'groomers', 'queue', 'serviceRecords', 'dailySchedules', 'users'];
+    this.initializedCollections = new Set();
+    // OPTIMIZATION: Remove 'queue' and 'serviceRecords' from generic load
+    this.initialCollections = ['customers', 'pets', 'groomers', 'dailySchedules', 'users'];
 
     // Initial data load
     this.initRealtimeListeners();
@@ -216,13 +218,61 @@ class DataStore {
       }
     });
 
-    // Wait for all fetches to complete
-    await Promise.all(fetchPromises);
+    // OPTIMIZATION: Fetch Queue specifically (Future + Last 7 Days only)
+    const queuePromise = (async () => {
+      try {
+        console.log('[DEBUG] Fetching optimized queue data...');
+        const today = new Date();
+        const pastDate = new Date();
+        pastDate.setDate(today.getDate() - 7); // Last 7 days
+        const dateStr = pastDate.toISOString().split('T')[0];
+
+        // Fetch queues with date >= 7 days ago
+        const snapshot = await this.db.collection('queue')
+          .where('date', '>=', dateStr)
+          .get();
+
+        this.data['queue'] = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return { ...data, id: doc.id };
+        });
+        this.initializedCollections.add('queue');
+        console.log(`[DEBUG] Loaded ${this.data.queue.length} active queue items`);
+      } catch (err) {
+        console.error('Error fetching optimized queue:', err);
+      }
+    })();
+
+    // Wait for all fetches to complete (including queue)
+    await Promise.all([...fetchPromises, queuePromise]);
 
     // After all fetches are done
-    if (window.app && window.app.loading) {
+    // Always notify app that initial data is loaded (or re-loaded/late-loaded)
+    if (window.app) {
       console.log('[DEBUG] All initial collections loaded via GET');
       window.app.onInitDataLoaded();
+
+      // OPTIMIZATION: Load Service Records in background AFTER UI render
+      setTimeout(() => this.loadServiceRecordsInBackground(), 2000);
+    }
+  }
+
+  async loadServiceRecordsInBackground() {
+    console.log('[DEBUG] Loading service records in background...');
+    try {
+      const snapshot = await this.db.collection('serviceRecords')
+        .orderBy('date', 'desc')
+        .limit(100) // Limit to last 100 records initially
+        .get();
+
+      this.data['serviceRecords'] = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { ...data, id: doc.id };
+      });
+      this.initializedCollections.add('serviceRecords');
+      console.log(`[DEBUG] Loaded ${this.data.serviceRecords.length} service records`);
+    } catch (err) {
+      console.warn('Background service record fetch failed:', err);
     }
   }
 
